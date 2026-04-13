@@ -390,45 +390,41 @@
         document.addEventListener('DOMContentLoaded', async () => {
             document.body.classList.add('is-loading')
 
-            // Enregistrer le listener EN PREMIER pour capturer le retour du magic link
-            supabaseClient.auth.onAuthStateChange(async (event, session) => {
-                if (event === 'SIGNED_IN' && session) {
-                    try {
-                        document.getElementById('user-email').textContent = session.user.email
-                        document.getElementById('auth-section').classList.remove('hidden')
-                        document.getElementById('view-login').classList.add('hidden')
-                        document.getElementById('view-main').classList.remove('hidden')
-                        await loadAllAudits()
-                        renderCriteriaForm()
-                        showDashboard()
-                    } catch(e) {
-                        console.error("Erreur auth:", e)
-                        alert("Erreur de chargement : " + e.message)
-                    } finally {
-                        document.body.classList.remove('is-loading')
-                    }
-                }
-                if (event === 'SIGNED_OUT') {
-                    showLoginScreen()
-                }
-            })
+            let appInitialized = false
 
-            // Vérifier s'il existe déjà une session active
-            const { data: { session } } = await supabaseClient.auth.getSession()
-            if (session) {
-                document.getElementById('user-email').textContent = session.user.email
-                document.getElementById('auth-section').classList.remove('hidden')
+            async function initializeApp(session) {
+                if (appInitialized) return
+                appInitialized = true
                 try {
+                    document.getElementById('user-email').textContent = session.user.email
+                    document.getElementById('auth-section').classList.remove('hidden')
+                    document.getElementById('view-login').classList.add('hidden')
+                    document.getElementById('view-main').classList.remove('hidden')
                     await loadAllAudits()
                     renderCriteriaForm()
                     showDashboard()
                 } catch(e) {
-                    console.error("Erreur Init:", e)
-                    alert("Erreur de chargement.")
+                    console.error("Erreur init:", e)
+                    alert("Erreur de chargement : " + e.message)
+                } finally {
+                    document.body.classList.remove('is-loading')
                 }
-                document.body.classList.remove('is-loading')
+            }
+
+            supabaseClient.auth.onAuthStateChange(async (event, session) => {
+                if (event === 'SIGNED_IN' && session) {
+                    await initializeApp(session)
+                }
+                if (event === 'SIGNED_OUT') {
+                    appInitialized = false
+                    showLoginScreen()
+                }
+            })
+
+            const { data: { session } } = await supabaseClient.auth.getSession()
+            if (session) {
+                await initializeApp(session)
             } else if (!window.location.hash.includes('access_token')) {
-                // Pas de session et pas de tokens dans l'URL → écran de connexion
                 document.body.classList.remove('is-loading')
                 showLoginScreen()
             }
