@@ -447,7 +447,7 @@
         async function handleLogin() {
             const email = document.getElementById('login-email').value.trim()
             if (!email) return
-            const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.href } })
+            const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } })
             if (error) { alert('Erreur: ' + error.message); return; }
             document.getElementById('login-form').classList.add('hidden')
             document.getElementById('login-sent').classList.remove('hidden')
