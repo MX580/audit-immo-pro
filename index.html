@@ -393,14 +393,20 @@
             // Enregistrer le listener EN PREMIER pour capturer le retour du magic link
             supabaseClient.auth.onAuthStateChange(async (event, session) => {
                 if (event === 'SIGNED_IN' && session) {
-                    document.getElementById('user-email').textContent = session.user.email
-                    document.getElementById('auth-section').classList.remove('hidden')
-                    document.getElementById('view-login').classList.add('hidden')
-                    document.getElementById('view-main').classList.remove('hidden')
-                    await loadAllAudits()
-                    renderCriteriaForm()
-                    showDashboard()
-                    document.body.classList.remove('is-loading')
+                    try {
+                        document.getElementById('user-email').textContent = session.user.email
+                        document.getElementById('auth-section').classList.remove('hidden')
+                        document.getElementById('view-login').classList.add('hidden')
+                        document.getElementById('view-main').classList.remove('hidden')
+                        await loadAllAudits()
+                        renderCriteriaForm()
+                        showDashboard()
+                    } catch(e) {
+                        console.error("Erreur auth:", e)
+                        alert("Erreur de chargement : " + e.message)
+                    } finally {
+                        document.body.classList.remove('is-loading')
+                    }
                 }
                 if (event === 'SIGNED_OUT') {
                     showLoginScreen()
