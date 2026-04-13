@@ -273,11 +273,6 @@
                     <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
                     Imprimer PDF
                 </button>
-                <button onclick="handleExportToClipboard()" id="btn-export-ia" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold shadow-sm transition-colors flex items-center justify-center gap-2">
-                    <svg id="icon-copy" class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                    <svg id="icon-check" class="w-4 h-4 hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span id="text-export-ia">Copier pour analyse IA</span>
-                </button>
             </div>
 
         </div>
@@ -871,62 +866,6 @@
             });
         }
 
-        // ==========================================
-        // 11. EXPORT IA
-        // ==========================================
-        window.handleExportToClipboard = function() {
-            if(!currentAudit) return;
-
-            // Recalcul du score
-            const keys = Object.keys(currentAudit.scores);
-            let total = 0; keys.forEach(k => total += currentAudit.scores[k]);
-            const pct = keys.length > 0 ? Math.round((total / (keys.length * 5)) * 100) : 0;
-
-            const d = currentAudit.details;
-
-            let txt = `🏡 DOSSIER IMMOBILIER : ${currentAudit.name || 'Non renseigné'}\n`;
-            txt += `⭐ SCORE GLOBAL : ${pct}% (${total}/${TOTAL_CRITERIA*5})\n\n`;
-
-            txt += `### INFORMATIONS CLÉS ###\n`;
-            txt += `- Type: ${d.type || 'N/A'}\n`;
-            txt += `- Prix demandé: ${d.price ? d.price + ' €' : 'N/A'}\n`;
-            txt += `- Frais annexes/Travaux: ${d.fees ? d.fees + ' €' : 'N/A'}\n`;
-            txt += `- Surface habitable: ${d.surface ? d.surface + ' m²' : 'N/A'}\n`;
-            txt += `- Surface terrain: ${d.land ? d.land + ' m²' : 'N/A'}\n`;
-            txt += `- Pièces: ${d.rooms || 'N/A'} (dont ${d.bedrooms || '0'} chambres)\n`;
-            txt += `- Année construction: ${d.year || 'N/A'}\n`;
-            txt += `- DPE: ${d.dpe || 'N/A'}\n`;
-            txt += `- Notes libres: ${d.notes || 'Aucune note'}\n\n`;
-
-            txt += `### ÉVALUATION DÉTAILLÉE ###\n`;
-            CRITERIA_CATEGORIES.forEach(cat => {
-                txt += `\n[ ${cat.title} ]\n`;
-                cat.criteria.forEach(crit => {
-                    const score = currentAudit.scores[crit.id] !== undefined ? currentAudit.scores[crit.id] : 'Non noté';
-                    txt += `- ${crit.label} : ${score}/5\n`;
-                });
-            });
-
-            const textArea = document.createElement("textarea");
-            textArea.value = txt; document.body.appendChild(textArea); textArea.select();
-
-            try {
-                document.execCommand('copy');
-                const textSpan = document.getElementById('text-export-ia');
-                const iconCopy = document.getElementById('icon-copy');
-                const iconCheck = document.getElementById('icon-check');
-
-                textSpan.textContent = "Copié avec succès !";
-                iconCopy.classList.add('hidden'); iconCheck.classList.remove('hidden');
-
-                setTimeout(() => {
-                    textSpan.textContent = "Copier pour analyse IA";
-                    iconCopy.classList.remove('hidden'); iconCheck.classList.add('hidden');
-                }, 2500);
-            } catch (err) { alert("Échec de la copie."); }
-
-            document.body.removeChild(textArea);
-        };
     </script>
 </body>
 </html>
