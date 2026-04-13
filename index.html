@@ -390,29 +390,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             document.body.classList.add('is-loading')
 
-            // Check auth
-            const { data: { session } } = await supabaseClient.auth.getSession()
-            if (!session) {
-                document.body.classList.remove('is-loading')
-                showLoginScreen()
-                return
-            }
-
-            // Show user email + logout button in header
-            document.getElementById('user-email').textContent = session.user.email
-            document.getElementById('auth-section').classList.remove('hidden')
-
-            try {
-                await loadAllAudits()
-                renderCriteriaForm()
-                showDashboard()
-            } catch(e) {
-                console.error("Erreur Init:", e)
-                alert("Erreur de chargement.")
-            }
-            document.body.classList.remove('is-loading')
-
-            // Handle auth state changes (magic link callback)
+            // Enregistrer le listener EN PREMIER pour capturer le retour du magic link
             supabaseClient.auth.onAuthStateChange(async (event, session) => {
                 if (event === 'SIGNED_IN' && session) {
                     document.getElementById('user-email').textContent = session.user.email
@@ -422,11 +400,33 @@
                     await loadAllAudits()
                     renderCriteriaForm()
                     showDashboard()
+                    document.body.classList.remove('is-loading')
                 }
                 if (event === 'SIGNED_OUT') {
                     showLoginScreen()
                 }
             })
+
+            // Vérifier s'il existe déjà une session active
+            const { data: { session } } = await supabaseClient.auth.getSession()
+            if (session) {
+                document.getElementById('user-email').textContent = session.user.email
+                document.getElementById('auth-section').classList.remove('hidden')
+                try {
+                    await loadAllAudits()
+                    renderCriteriaForm()
+                    showDashboard()
+                } catch(e) {
+                    console.error("Erreur Init:", e)
+                    alert("Erreur de chargement.")
+                }
+                document.body.classList.remove('is-loading')
+            } else if (!window.location.hash.includes('access_token')) {
+                // Pas de session et pas de tokens dans l'URL → écran de connexion
+                document.body.classList.remove('is-loading')
+                showLoginScreen()
+            }
+            // Si tokens présents dans le hash, onAuthStateChange prend le relais
         })
 
         async function loadAllAudits() {
@@ -447,7 +447,7 @@
         async function handleLogin() {
             const email = document.getElementById('login-email').value.trim()
             if (!email) return
-            const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.href } })
+            const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } })
             if (error) { alert('Erreur: ' + error.message); return; }
             document.getElementById('login-form').classList.add('hidden')
             document.getElementById('login-sent').classList.remove('hidden')
