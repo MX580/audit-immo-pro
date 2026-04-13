@@ -6,11 +6,12 @@
     <title>Audit Immobilier Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         .tab-active { border-bottom: 2px solid #2563eb; color: #1e40af; font-weight: 700; }
         .tab-inactive { color: #64748b; font-weight: 500; }
         .tab-inactive:hover { color: #334155; }
-        
+
         /* Loading overlay */
         #loader { display: none; }
         .is-loading #loader { display: flex; }
@@ -35,6 +36,31 @@
         </div>
     </div>
 
+    <!-- LOGIN SCREEN -->
+    <div id="view-login" class="hidden min-h-screen flex items-center justify-center bg-slate-50">
+        <div class="bg-white p-8 rounded-2xl shadow-lg border border-slate-200 w-full max-w-md">
+            <div class="flex items-center gap-3 mb-8 justify-center">
+                <div class="bg-blue-600 p-2 rounded-lg text-white">
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <h1 class="text-2xl font-black text-slate-900">AuditImmo<span class="text-blue-600">Pro</span></h1>
+            </div>
+            <h2 class="text-xl font-bold text-slate-800 mb-2">Connexion</h2>
+            <p class="text-slate-500 text-sm mb-6">Entrez votre email pour recevoir un lien de connexion.</p>
+            <div id="login-form">
+                <input type="email" id="login-email" placeholder="votre@email.com" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50 mb-4">
+                <button onclick="handleLogin()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors">
+                    Envoyer le lien de connexion
+                </button>
+            </div>
+            <div id="login-sent" class="hidden text-center">
+                <div class="text-4xl mb-4">📬</div>
+                <p class="font-bold text-slate-800">Vérifiez votre email !</p>
+                <p class="text-slate-500 text-sm mt-2">Un lien de connexion a été envoyé à <span id="login-email-sent" class="font-semibold text-blue-600"></span></p>
+            </div>
+        </div>
+    </div>
+
     <!-- MAIN HEADER -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-30 no-print shadow-sm">
         <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -44,13 +70,22 @@
                 </div>
                 <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">AuditImmo<span class="text-blue-600">Pro</span></h1>
             </div>
-            <button onclick="showDashboard()" id="btn-nav-dashboard" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-colors flex items-center gap-2">
-                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-                <span class="hidden sm:inline">Tableau de bord</span>
-            </button>
+            <div class="flex items-center gap-3">
+                <button onclick="showDashboard()" id="btn-nav-dashboard" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                    <span class="hidden sm:inline">Tableau de bord</span>
+                </button>
+                <div id="auth-section" class="hidden flex items-center gap-3">
+                    <span id="user-email" class="text-sm text-slate-500 hidden sm:block"></span>
+                    <button onclick="handleLogout()" class="px-3 py-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-medium transition-colors">
+                        Déconnexion
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
 
+    <div id="view-main" class="hidden">
     <main class="max-w-6xl mx-auto px-4 py-6">
 
         <!-- ========================================== -->
@@ -93,7 +128,7 @@
         <!-- VUE : DOSSIER D'AUDIT (FOLDER)             -->
         <!-- ========================================== -->
         <div id="view-folder" class="hidden">
-            
+
             <!-- FOLDER HEADER -->
             <div class="bg-white rounded-t-2xl shadow-sm border border-slate-200 border-b-0 p-4 md:p-6 no-print">
                 <div class="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
@@ -134,7 +169,7 @@
             <div id="tab-info" class="tab-content bg-white p-6 rounded-b-2xl shadow-sm border border-slate-200 border-t-0">
                 <h3 class="text-xl font-bold mb-6 text-slate-800 print:block">Fiche d'identité du bien</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    
+
                     <div class="col-span-1 md:col-span-2">
                         <label class="block text-sm font-semibold text-slate-600 mb-1">Type de bien</label>
                         <select id="prop-type" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
@@ -248,6 +283,7 @@
         </div>
 
     </main>
+    </div>
 
     <!-- SCRIPTS -->
     <script>
@@ -307,52 +343,31 @@
         const TOTAL_CRITERIA = CRITERIA_CATEGORIES.reduce((acc, cat) => acc + cat.criteria.length, 0);
 
         // ==========================================
-        // 2. GESTION DE BASE DE DONNÉES (INDEXED DB)
-        // Permet de stocker des gros fichiers sans limite localStorage
+        // 2. SUPABASE CLIENT
         // ==========================================
-        const DB_NAME = 'ImmoAuditDB_v2';
-        const STORE_NAME = 'audits';
-        let db;
-
-        function initDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, 1);
-                request.onerror = event => reject("Erreur d'ouverture DB");
-                request.onsuccess = event => { db = event.target.result; resolve(); };
-                request.onupgradeneeded = event => {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-                    }
-                };
-            });
-        }
+        const SUPABASE_URL = 'https://kchkzcbtspqhdezifsew.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjaGt6Y2J0c3BxaGRlemlmc2V3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwODg1NzcsImV4cCI6MjA5MTY2NDU3N30.MexJPPVxx-_iCUmywkUq5X6XpRcNK2fPx_9Xv4TpEvM'
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
         async function saveAuditToDB(audit) {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction([STORE_NAME], 'readwrite');
-                tx.objectStore(STORE_NAME).put(audit);
-                tx.oncomplete = () => resolve();
-                tx.onerror = () => reject();
-            });
+            const { data: { user } } = await supabaseClient.auth.getUser()
+            const { error } = await supabaseClient.from('audits').upsert({
+                ...audit,
+                user_id: user.id,
+                updated_at: new Date().toISOString()
+            })
+            if (error) throw error
         }
 
         async function getAuditsFromDB() {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction([STORE_NAME], 'readonly');
-                const req = tx.objectStore(STORE_NAME).getAll();
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = () => reject();
-            });
+            const { data, error } = await supabaseClient.from('audits').select('*').order('id', { ascending: false })
+            if (error) throw error
+            return data || []
         }
 
         async function deleteAuditFromDB(id) {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction([STORE_NAME], 'readwrite');
-                tx.objectStore(STORE_NAME).delete(id);
-                tx.oncomplete = () => resolve();
-                tx.onerror = () => reject();
-            });
+            const { error } = await supabaseClient.from('audits').delete().eq('id', id)
+            if (error) throw error
         }
 
         // ==========================================
@@ -375,21 +390,49 @@
         }
 
         // ==========================================
-        // 4. INITIALISATION & MIGRATION
+        // 4. INITIALISATION & AUTH
         // ==========================================
         document.addEventListener('DOMContentLoaded', async () => {
-            document.body.classList.add('is-loading');
-            try {
-                await initDB();
-                await loadAllAudits();
-                renderCriteriaForm(); // Prépare le HTML des critères
-                showDashboard();
-            } catch(e) {
-                console.error("Erreur Init:", e);
-                alert("Erreur de chargement de la base de données locale.");
+            document.body.classList.add('is-loading')
+
+            // Check auth
+            const { data: { session } } = await supabaseClient.auth.getSession()
+            if (!session) {
+                document.body.classList.remove('is-loading')
+                showLoginScreen()
+                return
             }
-            document.body.classList.remove('is-loading');
-        });
+
+            // Show user email + logout button in header
+            document.getElementById('user-email').textContent = session.user.email
+            document.getElementById('auth-section').classList.remove('hidden')
+
+            try {
+                await loadAllAudits()
+                renderCriteriaForm()
+                showDashboard()
+            } catch(e) {
+                console.error("Erreur Init:", e)
+                alert("Erreur de chargement.")
+            }
+            document.body.classList.remove('is-loading')
+
+            // Handle auth state changes (magic link callback)
+            supabaseClient.auth.onAuthStateChange(async (event, session) => {
+                if (event === 'SIGNED_IN' && session) {
+                    document.getElementById('user-email').textContent = session.user.email
+                    document.getElementById('auth-section').classList.remove('hidden')
+                    document.getElementById('view-login').classList.add('hidden')
+                    document.getElementById('view-main').classList.remove('hidden')
+                    await loadAllAudits()
+                    renderCriteriaForm()
+                    showDashboard()
+                }
+                if (event === 'SIGNED_OUT') {
+                    showLoginScreen()
+                }
+            })
+        })
 
         async function loadAllAudits() {
             auditsList = await getAuditsFromDB();
@@ -398,26 +441,50 @@
         }
 
         // ==========================================
+        // 4b. AUTH FUNCTIONS
+        // ==========================================
+        function showLoginScreen() {
+            document.getElementById('view-login').classList.remove('hidden')
+            document.getElementById('view-main').classList.add('hidden')
+            document.getElementById('auth-section').classList.add('hidden')
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value.trim()
+            if (!email) return
+            const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.href } })
+            if (error) { alert('Erreur: ' + error.message); return; }
+            document.getElementById('login-form').classList.add('hidden')
+            document.getElementById('login-sent').classList.remove('hidden')
+            document.getElementById('login-email-sent').textContent = email
+        }
+
+        async function handleLogout() {
+            await supabaseClient.auth.signOut()
+        }
+
+        // ==========================================
         // 5. NAVIGATION & VUES
         // ==========================================
         function showDashboard() {
             if (isUnsaved && !confirm("Vous avez des modifications non sauvegardées. Voulez-vous quitter sans sauvegarder ?")) return;
-            
+
             document.getElementById('view-folder').classList.add('hidden');
             document.getElementById('view-dashboard').classList.remove('hidden');
+            document.getElementById('view-main').classList.remove('hidden');
             currentAudit = null;
             isUnsaved = false;
-            
+
             renderDashboard();
         }
 
         async function openFolder(id) {
             if (isUnsaved && !confirm("Vous avez des modifications non sauvegardées. Voulez-vous quitter ?")) return;
-            
+
             document.body.classList.add('is-loading');
             const audits = await getAuditsFromDB();
             currentAudit = audits.find(a => a.id === id);
-            
+
             if (currentAudit) {
                 populateFolderUI();
                 document.getElementById('view-dashboard').classList.add('hidden');
@@ -482,9 +549,9 @@
             const keys = Object.keys(currentAudit.scores);
             let total = 0;
             keys.forEach(k => total += currentAudit.scores[k]);
-            
+
             const pct = (keys.length > 0) ? Math.round((total / (keys.length * 5)) * 100) : 0;
-            
+
             document.getElementById('prop-score-pct').textContent = pct;
             document.getElementById('tab-eval-count').textContent = keys.length;
             document.getElementById('tab-files-count').textContent = currentAudit.attachments.length;
@@ -504,7 +571,7 @@
             CRITERIA_CATEGORIES.forEach(category => {
                 const section = document.createElement('div');
                 section.className = 'border border-slate-200 rounded-xl overflow-hidden print-break-inside-avoid';
-                
+
                 let critHtml = '';
                 category.criteria.forEach(crit => {
                     critHtml += `
@@ -630,14 +697,14 @@
 
             currentAudit.attachments.forEach(file => {
                 const isImg = file.type.startsWith('image/');
-                const thumb = isImg 
+                const thumb = isImg
                     ? `<div class="h-32 w-full bg-cover bg-center" style="background-image: url('${file.dataUrl}')"></div>`
                     : `<div class="h-32 w-full flex flex-col items-center justify-center bg-red-50 text-red-500"><svg class="w-10 h-10 mb-2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>PDF</div>`;
 
                 const eyeBtn = isImg ? `
                     <button onclick="toggleAttachmentVisibility('${file.id}', event)" class="absolute top-2 left-2 p-1.5 rounded-lg shadow-sm transition-colors ${file.showInDashboard ? 'bg-blue-600 text-white' : 'bg-white/90 text-slate-400 hover:text-blue-600 hover:bg-white'}" title="${file.showInDashboard ? 'Image affichée sur le tableau de bord' : 'Définir comme miniature du bien'}">
-                        ${file.showInDashboard 
-                            ? '<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>' 
+                        ${file.showInDashboard
+                            ? '<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>'
                             : '<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>'
                         }
                     </button>
@@ -665,7 +732,7 @@
         window.saveCurrentAudit = async function() {
             const name = document.getElementById('prop-name').value.trim();
             if(!name) { alert("Veuillez donner un nom au dossier."); return; }
-            
+
             document.body.classList.add('is-loading');
 
             // Récupérer form infos
@@ -685,7 +752,7 @@
 
             await saveAuditToDB(currentAudit);
             await loadAllAudits();
-            
+
             isUnsaved = false;
             document.body.classList.remove('is-loading');
 
@@ -732,7 +799,7 @@
                 const keys = Object.keys(audit.scores);
                 let total = 0; keys.forEach(k => total += audit.scores[k]);
                 const pct = keys.length > 0 ? Math.round((total / (keys.length * 5)) * 100) : 0;
-                
+
                 const scoreColor = pct >= 80 ? 'text-emerald-500' : pct >= 60 ? 'text-blue-500' : pct >= 40 ? 'text-amber-500' : 'text-red-500';
                 const barColor = pct >= 80 ? 'bg-emerald-500' : pct >= 60 ? 'bg-blue-500' : pct >= 40 ? 'bg-amber-500' : 'bg-red-500';
 
@@ -743,8 +810,8 @@
                 const infoStr = infos.length > 0 ? infos.join(' • ') : 'Données incomplètes';
 
                 const coverImg = audit.attachments && audit.attachments.find(f => f.showInDashboard && f.type.startsWith('image/'));
-                const coverHtml = coverImg 
-                    ? `<div class="h-48 w-full bg-cover bg-center border-b border-slate-100" style="background-image: url('${coverImg.dataUrl}')"></div>` 
+                const coverHtml = coverImg
+                    ? `<div class="h-48 w-full bg-cover bg-center border-b border-slate-100" style="background-image: url('${coverImg.dataUrl}')"></div>`
                     : '';
 
                 grid.innerHTML += `
@@ -757,7 +824,7 @@
                                     <button onclick="deleteAudit('${audit.id}', event)" class="text-slate-300 hover:text-red-500 transition-colors ml-2"><svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
                                 </div>
                                 <p class="text-sm text-slate-500 mb-4">${infoStr}</p>
-                                
+
                                 <div class="flex items-end gap-2 mb-2">
                                     <span class="text-3xl font-black ${scoreColor}">${pct}%</span>
                                     <span class="text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Affinité</span>
@@ -778,9 +845,9 @@
             // Refresh Chart (10 derniers)
             const ctx = document.getElementById('comparisonChart');
             if(comparisonChart) comparisonChart.destroy();
-            
+
             const chartData = [...auditsList].slice(0, 10).reverse(); // On prend les 10 derniers, dans l'ordre chrono
-            
+
             comparisonChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -816,7 +883,7 @@
             const pct = keys.length > 0 ? Math.round((total / (keys.length * 5)) * 100) : 0;
 
             const d = currentAudit.details;
-            
+
             let txt = `🏡 DOSSIER IMMOBILIER : ${currentAudit.name || 'Non renseigné'}\n`;
             txt += `⭐ SCORE GLOBAL : ${pct}% (${total}/${TOTAL_CRITERIA*5})\n\n`;
 
@@ -842,7 +909,7 @@
 
             const textArea = document.createElement("textarea");
             textArea.value = txt; document.body.appendChild(textArea); textArea.select();
-            
+
             try {
                 document.execCommand('copy');
                 const textSpan = document.getElementById('text-export-ia');
@@ -857,7 +924,7 @@
                     iconCopy.classList.remove('hidden'); iconCheck.classList.add('hidden');
                 }, 2500);
             } catch (err) { alert("Échec de la copie."); }
-            
+
             document.body.removeChild(textArea);
         };
     </script>
