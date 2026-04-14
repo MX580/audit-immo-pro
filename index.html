@@ -3,359 +3,467 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audit Immobilier Pro</title>
+    <title>AuditImmoPro - Audit Immobilier Luxe</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .tab-active { border-bottom: 2px solid #2563eb; color: #1e40af; font-weight: 700; }
-        .tab-inactive { color: #64748b; font-weight: 500; }
-        .tab-inactive:hover { color: #334155; }
+        * {
+            font-family: 'Montserrat', sans-serif;
+        }
 
-        /* Loading overlay */
+        h1, h2, h3, .title {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .tab-active {
+            border-bottom: 3px solid #d4af37;
+            color: #1a1a1a;
+            font-weight: 700;
+        }
+        .tab-inactive {
+            color: #666;
+            font-weight: 500;
+        }
+        .tab-inactive:hover {
+            color: #d4af37;
+        }
+
         #loader { display: none; }
         .is-loading #loader { display: flex; }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #d4af37 0%, #c9a227 100%);
+            color: #1a1a1a;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #e8c547 0%, #d4af37 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn-secondary {
+            background: #1a1a1a;
+            color: #fff;
+            border: 2px solid #d4af37;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #d4af37;
+            color: #1a1a1a;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #d4af37;
+            border: 2px solid #d4af37;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline:hover {
+            background: #d4af37;
+            color: #1a1a1a;
+        }
+
+        .card-luxury {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            transition: all 0.3s ease;
+        }
+
+        .card-luxury:hover {
+            border-color: #d4af37;
+            box-shadow: 0 15px 40px rgba(212, 175, 55, 0.15);
+        }
+
+        .accent-gold {
+            color: #d4af37;
+        }
+
+        .accent-line {
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #d4af37, transparent);
+            margin: 10px 0;
+        }
 
         @media print {
             .no-print { display: none !important; }
             .print-break-inside-avoid { break-inside: avoid; }
             body { background-color: white !important; }
-            .shadow-sm { box-shadow: none !important; border: none !important; }
-            /* Force l'affichage de tous les onglets à l'impression */
             .tab-content { display: block !important; }
         }
     </style>
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-800 font-sans pb-20">
+<body class="min-h-screen bg-white text-slate-800 font-sans">
 
     <!-- LOADER -->
-    <div id="loader" class="fixed inset-0 bg-slate-900/50 z-50 items-center justify-center backdrop-blur-sm">
-        <div class="bg-white p-6 rounded-xl shadow-xl flex flex-col items-center">
-            <svg class="animate-spin w-10 h-10 text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            <p class="font-bold text-slate-800">Traitement en cours...</p>
-        </div>
-    </div>
-
-    <!-- LOGIN SCREEN -->
-    <div id="view-login" class="hidden min-h-screen flex items-center justify-center bg-slate-50">
-        <div class="bg-white p-8 rounded-2xl shadow-lg border border-slate-200 w-full max-w-md">
-            <div class="flex items-center gap-3 mb-8 justify-center">
-                <div class="bg-blue-600 p-2 rounded-lg text-white">
-                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                </div>
-                <h1 class="text-2xl font-black text-slate-900">AuditImmo<span class="text-blue-600">Pro</span></h1>
-            </div>
-            <h2 class="text-xl font-bold text-slate-800 mb-2">Connexion</h2>
-            <p class="text-slate-500 text-sm mb-6">Entrez votre email pour recevoir un lien de connexion.</p>
-            <div id="login-form">
-                <input type="email" id="login-email" placeholder="votre@email.com" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50 mb-4">
-                <button onclick="handleLogin()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors">
-                    Envoyer le lien de connexion
-                </button>
-            </div>
-            <div id="login-sent" class="hidden text-center">
-                <div class="text-4xl mb-4">📬</div>
-                <p class="font-bold text-slate-800">Vérifiez votre email !</p>
-                <p class="text-slate-500 text-sm mt-2">Un lien de connexion a été envoyé à <span id="login-email-sent" class="font-semibold text-blue-600"></span></p>
-            </div>
+    <div id="loader" class="fixed inset-0 bg-black/70 z-50 items-center justify-center backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center">
+            <div class="w-12 h-12 rounded-full border-4 border-d4af37 border-t-d4af37 animate-spin mb-4"></div>
+            <p class="font-bold text-slate-800 tracking-wide">Traitement en cours...</p>
         </div>
     </div>
 
     <!-- MAIN HEADER -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 no-print shadow-sm">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="showDashboard()">
-                <div class="bg-blue-600 p-2 rounded-lg text-white">
-                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <header class="bg-white border-b-2 border-d4af37 sticky top-0 z-30 no-print shadow-lg">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-4 cursor-pointer" onclick="showDashboard()">
+                <div class="w-12 h-12 rounded-lg flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #d4af37 0%, #f59e0b 100%);">
+                    <svg class="w-8 h-8" viewBox="0 0 24 24" fill="white"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
                 </div>
-                <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">AuditImmo<span class="text-blue-600">Pro</span></h1>
-            </div>
-            <div class="flex items-center gap-3">
-                <button onclick="showDashboard()" id="btn-nav-dashboard" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-colors flex items-center gap-2">
-                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-                    <span class="hidden sm:inline">Tableau de bord</span>
-                </button>
-                <div id="auth-section" class="hidden flex items-center gap-3">
-                    <span id="user-email" class="text-sm text-slate-500 hidden sm:block"></span>
-                    <button onclick="handleLogout()" class="px-3 py-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-medium transition-colors">
-                        Déconnexion
-                    </button>
+                <div>
+                    <h1 class="text-2xl font-black text-slate-900 tracking-tight">AUDITIMMO</h1>
+                    <p class="text-xs text-d4af37 font-semibold tracking-widest">EXPERTISE IMMOBILIÈRE</p>
                 </div>
             </div>
+            <button onclick="showDashboard()" id="btn-nav-dashboard" class="btn-secondary px-6 py-3 rounded-lg flex items-center gap-2 no-print">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2z"/></svg>
+                <span class="hidden sm:inline text-sm">Tableau de bord</span>
+            </button>
         </div>
     </header>
 
-    <div id="view-main" class="hidden">
-    <main class="max-w-6xl mx-auto px-4 py-6">
+    <main class="max-w-7xl mx-auto px-6 py-12">
 
-        <!-- ========================================== -->
-        <!-- VUE : TABLEAU DE BORD (DASHBOARD)          -->
-        <!-- ========================================== -->
-        <div id="view-dashboard" class="space-y-8">
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <!-- VUE : TABLEAU DE BORD (DASHBOARD) -->
+        <div id="view-dashboard" class="space-y-12">
+            <!-- Hero Section -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8 pb-8 border-b-2 border-d4af37">
                 <div>
-                    <h2 class="text-3xl font-bold text-slate-800">Mes Dossiers</h2>
-                    <p class="text-slate-500 mt-1">Comparez et gérez vos visites immobilières.</p>
+                    <h2 class="text-5xl font-black text-slate-900 mb-3">Mes Dossiers</h2>
+                    <div class="accent-line"></div>
+                    <p class="text-slate-600 mt-4 text-lg font-light">Analysez et comparez vos biens immobiliers avec precision</p>
                 </div>
-                <button onclick="createNewAudit()" class="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-colors flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <button onclick="createNewAudit()" class="btn-primary px-8 py-4 rounded-lg font-bold shadow-lg no-print flex items-center gap-2 whitespace-nowrap">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Nouveau Dossier
                 </button>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- CHART -->
-                <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-                        Scores d'affinité (%)
-                    </h3>
-                    <div class="w-full h-64">
+            <!-- Charts & Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Chart Card -->
+                <div class="lg:col-span-1 card-luxury p-8 rounded-2xl">
+                    <div class="flex items-center gap-3 mb-6">
+                        <svg class="w-6 h-6 accent-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                        <h3 class="text-lg font-bold text-slate-900">Analyse Comparative</h3>
+                    </div>
+                    <div class="accent-line"></div>
+                    <div class="w-full h-64 mt-6">
                         <canvas id="comparisonChart"></canvas>
                     </div>
                 </div>
 
-                <!-- LIST -->
+                <!-- Audits Grid -->
                 <div class="lg:col-span-2">
-                    <div id="audits-grid" class="grid sm:grid-cols-2 gap-4">
-                        <!-- Injecté via JS -->
-                    </div>
+                    <div id="audits-grid" class="grid sm:grid-cols-2 gap-6"></div>
                 </div>
             </div>
         </div>
 
-        <!-- ========================================== -->
-        <!-- VUE : DOSSIER D'AUDIT (FOLDER)             -->
-        <!-- ========================================== -->
+        <!-- VUE : DOSSIER D'AUDIT (FOLDER) -->
         <div id="view-folder" class="hidden">
 
-            <!-- FOLDER HEADER -->
-            <div class="bg-white rounded-t-2xl shadow-sm border border-slate-200 border-b-0 p-4 md:p-6 no-print">
-                <div class="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+            <!-- Folder Header -->
+            <div class="bg-gradient-to-r from-slate-50 to-white rounded-t-2xl p-8 border-b-2 border-d4af37 no-print">
+                <div class="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
                     <div class="w-full flex-1">
-                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Nom du bien / Adresse</label>
-                        <input type="text" id="prop-name" placeholder="Ex: Maison 4 pièces - Lyon 3" class="w-full text-2xl md:text-3xl font-bold text-slate-900 border-0 border-b-2 border-transparent hover:border-slate-200 focus:border-blue-500 focus:ring-0 p-0 bg-transparent transition-colors placeholder-slate-300" onchange="markAsUnsaved()">
+                        <label class="text-xs font-bold text-d4af37 uppercase tracking-widest mb-2 block">Bien Immobilier</label>
+                        <input type="text" id="prop-name" placeholder="Ex: Appartement Haussmannien - Paris 8e" class="w-full text-4xl font-black text-slate-900 border-0 border-b-3 border-transparent hover:border-d4af37 focus:border-d4af37 focus:ring-0 p-0 bg-transparent transition-colors placeholder-slate-300">
                     </div>
-                    <div class="flex items-center gap-2 w-full md:w-auto">
-                        <div class="text-right mr-4 hidden md:block">
-                            <div class="text-sm font-semibold text-slate-500">Score Global</div>
-                            <div class="text-2xl font-black text-blue-600"><span id="prop-score-pct">0</span>%</div>
+                    <div class="flex items-center gap-4 w-full md:w-auto flex-wrap md:flex-nowrap">
+                        <div class="text-right bg-gradient-to-br from-d4af37/10 to-transparent p-4 rounded-lg">
+                            <div class="text-xs font-bold text-d4af37 uppercase tracking-widest">Score</div>
+                            <div class="text-3xl font-black text-slate-900"><span id="prop-score-pct">0</span>%</div>
                         </div>
-                        <button onclick="saveCurrentAudit()" id="btn-save" class="flex-1 md:flex-none px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-colors flex items-center justify-center gap-2">
-                            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        <button onclick="saveCurrentAudit()" id="btn-save" class="btn-primary px-8 py-4 rounded-lg font-bold shadow-lg no-print flex items-center gap-2">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h11l5 5v11c0 1.1-.9 2-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                             Sauvegarder
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- FOLDER TABS -->
-            <div class="bg-slate-100 border border-slate-200 px-4 flex gap-6 overflow-x-auto no-print">
-                <button onclick="switchFolderTab('info')" id="tab-btn-info" class="tab-active py-4 whitespace-nowrap flex items-center gap-2">
-                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                    Informations Clés
+            <!-- Tabs -->
+            <div class="bg-white border-b-2 border-slate-100 px-8 flex gap-8 overflow-x-auto no-print sticky top-16 z-20">
+                <button onclick="switchFolderTab('info')" id="tab-btn-info" class="tab-active py-4 whitespace-nowrap flex items-center gap-2 font-semibold">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    Informations
                 </button>
-                <button onclick="switchFolderTab('eval')" id="tab-btn-eval" class="tab-inactive py-4 whitespace-nowrap flex items-center gap-2">
-                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></svg>
-                    Évaluation (<span id="tab-eval-count">0</span>/28)
+                <button onclick="switchFolderTab('eval')" id="tab-btn-eval" class="tab-inactive py-4 whitespace-nowrap flex items-center gap-2 font-semibold">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></svg>
+                    Évaluation <span class="text-d4af37">(<span id="tab-eval-count">0</span>/28)</span>
                 </button>
-                <button onclick="switchFolderTab('files')" id="tab-btn-files" class="tab-inactive py-4 whitespace-nowrap flex items-center gap-2">
-                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                    Pièces Jointes (<span id="tab-files-count">0</span>)
+                <button onclick="switchFolderTab('files')" id="tab-btn-files" class="tab-inactive py-4 whitespace-nowrap flex items-center gap-2 font-semibold">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19c-2.33 2.33-6.15 2.33-8.49 0-2.33-2.33-2.33-6.15 0-8.49l8.57-8.57c1.56-1.56 4.08-1.56 5.66 0 1.56 1.56 1.56 4.08 0 5.66l-8.59 8.59c-.78.78-2.05.78-2.83 0-.78-.78-.78-2.05 0-2.83l8.49-8.48"/></svg>
+                    Fichiers <span class="text-d4af37">(<span id="tab-files-count">0</span>)</span>
                 </button>
             </div>
 
-            <!-- TAB 1 : INFORMATIONS -->
-            <div id="tab-info" class="tab-content bg-white p-6 rounded-b-2xl shadow-sm border border-slate-200 border-t-0">
-                <h3 class="text-xl font-bold mb-6 text-slate-800 print:block">Fiche d'identité du bien</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Tab: Infos -->
+            <div id="tab-info" class="tab-content bg-white p-8 rounded-b-2xl">
+                <h3 class="text-2xl font-black text-slate-900 mb-6 flex items-center gap-3">
+                    <svg class="w-6 h-6 accent-gold" viewBox="0 0 24 24" fill="currentColor"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
+                    Données du Bien
+                </h3>
+                <div class="accent-line mb-6"></div>
 
-                    <div class="col-span-1 md:col-span-2">
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Type de bien</label>
-                        <select id="prop-type" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
-                            <option value="">Sélectionner...</option>
-                            <option value="Appartement">Appartement</option>
-                            <option value="Maison">Maison / Villa</option>
-                            <option value="Terrain">Terrain</option>
-                            <option value="Immeuble">Immeuble</option>
-                            <option value="Autre">Autre</option>
-                        </select>
+                <!-- Section 1: Type & État -->
+                <div class="mb-8 pb-6 border-b-2 border-slate-100">
+                    <h4 class="text-sm font-bold text-d4af37 uppercase tracking-widest mb-4">Caractéristiques principales</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Type</label>
+                            <select id="prop-type" class="w-full p-4 rounded-lg border-2 border-slate-200 focus:border-d4af37 focus:ring-0 bg-slate-50 font-medium" onchange="handlePriceChange()">
+                                <option value="">Sélectionner...</option>
+                                <option value="Appartement">Appartement</option>
+                                <option value="Maison">Maison / Villa</option>
+                                <option value="Terrain">Terrain</option>
+                                <option value="Immeuble">Immeuble</option>
+                                <option value="Autre">Autre</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Catégorie</label>
+                            <select id="prop-fees" class="w-full p-4 rounded-lg border-2 border-slate-200 focus:border-d4af37 focus:ring-0 bg-slate-50" onchange="handleStateChange()">
+                                <option value="">Sélectionner...</option>
+                                <option value="Ancien">Ancien</option>
+                                <option value="CCMI">CCMI (Neuf - Contrat Construction)</option>
+                                <option value="VFA">VFA (Neuf - Futur Achèvement)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">DPE</label>
+                            <select id="prop-dpe" class="w-full p-4 rounded-lg border-2 border-slate-200 focus:border-d4af37 focus:ring-0 bg-slate-50" onchange="markAsUnsaved()">
+                                <option value="">Non renseigné</option>
+                                <option value="A">A (Excellent)</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D (Moyen)</option>
+                                <option value="E">E</option>
+                                <option value="F">F (Passoire)</option>
+                                <option value="G">G (Passoire)</option>
+                            </select>
+                        </div>
                     </div>
+                </div>
 
+                <!-- Section 2: Surfaces -->
+                <div class="mb-8 pb-6 border-b-2 border-slate-100">
+                    <h4 class="text-sm font-bold text-d4af37 uppercase tracking-widest mb-4">Surfaces</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Surface habitable (m²)</label>
+                            <input type="number" id="prop-surface" placeholder="85" class="w-full p-4 rounded-lg border-2 border-slate-200 focus:border-d4af37 focus:ring-0 bg-slate-50" onchange="markAsUnsaved()">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Surface terrain (m²)</label>
+                            <input type="number" id="prop-land" placeholder="500" class="w-full p-4 rounded-lg border-2 border-slate-200 focus:border-d4af37 focus:ring-0 bg-slate-50" onchange="markAsUnsaved()">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Pièces / Chambres</label>
+                            <div class="flex gap-3">
+                                <input type="number" id="prop-rooms" placeholder="4" class="flex-1 p-4 rounded-lg border-2 border-slate-200 focus:border-d4af37 focus:ring-0 bg-slate-50" onchange="markAsUnsaved()">
+                                <input type="number" id="prop-bedrooms" placeholder="2" class="flex-1 p-4 rounded-lg border-2 border-slate-200 focus:border-d4af37 focus:ring-0 bg-slate-50" onchange="markAsUnsaved()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Budget & Année -->
+                <div class="mb-8 pb-6 border-b-2 border-slate-100">
+                    <h4 class="text-sm font-bold text-d4af37 uppercase tracking-widest mb-4">Budget & Âge</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Prix de vente (€)</label>
+                            <input type="number" id="prop-price" placeholder="250000" class="w-full p-4 rounded-lg border-2 border-slate-200 focus:border-d4af37 focus:ring-0 bg-slate-50" onchange="handlePriceChange()">
+                        </div>
+
+                        <div id="year-section">
+                            <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Année de construction</label>
+                            <input type="number" id="prop-year" placeholder="1990" class="w-full p-4 rounded-lg border-2 border-slate-200 focus:border-d4af37 focus:ring-0 bg-slate-50" onchange="markAsUnsaved()" disabled>
+                            <p class="text-xs text-slate-500 mt-1">Activé pour les biens anciens uniquement</p>
+                        </div>
+
+                        <div id="terrain-price-section" class="hidden">
+                            <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Prix du terrain (€)</label>
+                            <input type="number" id="prop-terrain-price" placeholder="100000" class="w-full p-4 rounded-lg border-2 border-slate-200 focus:border-d4af37 focus:ring-0 bg-slate-50" onchange="handlePriceChange()">
+                            <p class="text-xs text-slate-500 mt-1">Frais de notaire appliqués au terrain uniquement</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Calcul financier -->
+                <div class="bg-gradient-to-br from-d4af37/5 to-transparent p-6 rounded-2xl border-2 border-d4af37">
+                    <h4 class="text-sm font-bold text-d4af37 uppercase tracking-widest mb-4">Simulation financière</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-4 rounded-lg border-2 border-slate-200">
+                            <p class="text-xs text-slate-600 uppercase tracking-wide mb-1">Frais de notaire</p>
+                            <p class="text-2xl font-black text-slate-900"><span id="calc-notaire">0</span>€</p>
+                            <p class="text-xs text-slate-500 mt-1" id="calc-notaire-pct"></p>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-lg border-2 border-slate-200">
+                            <p class="text-xs text-slate-600 uppercase tracking-wide mb-1">Coût total (prix + notaire)</p>
+                            <p class="text-2xl font-black text-slate-900"><span id="calc-total">0</span>€</p>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-lg border-2 border-slate-200">
+                            <p class="text-xs text-slate-600 uppercase tracking-wide mb-1">Montant à emprunter</p>
+                            <p class="text-2xl font-black text-d4af37"><span id="calc-loan">0</span>€</p>
+                            <p class="text-xs text-slate-500 mt-1">(apport: 40 000€)</p>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-lg border-2 border-slate-200">
+                            <p class="text-xs text-slate-600 uppercase tracking-wide mb-1">Mensualité</p>
+                            <p class="text-2xl font-black text-slate-900"><span id="calc-monthly">0</span>€</p>
+                            <p class="text-xs text-slate-500 mt-1">sur 25 ans à 4%</p>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-lg border-2 border-slate-200">
+                            <p class="text-xs text-slate-600 uppercase tracking-wide mb-1">Total intérêts</p>
+                            <p class="text-2xl font-black text-slate-900"><span id="calc-interests">0</span>€</p>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-lg border-2 border-slate-200">
+                            <p class="text-xs text-slate-600 uppercase tracking-wide mb-1">Coût réel</p>
+                            <p class="text-2xl font-black text-red-600"><span id="calc-real">0</span>€</p>
+                            <p class="text-xs text-slate-500 mt-1">(prix + notaire + intérêts)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Notes -->
+                <div>
+                    <h4 class="text-sm font-bold text-d4af37 uppercase tracking-widest mb-4">Observations</h4>
                     <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Prix de vente (€)</label>
-                        <input type="number" id="prop-price" placeholder="Ex: 250000" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Frais annexe / Travaux estimés (€)</label>
-                        <input type="number" id="prop-fees" placeholder="Ex: 15000" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Surface Habitable (m²)</label>
-                        <input type="number" id="prop-surface" placeholder="Ex: 85" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Surface Terrain (m²)</label>
-                        <input type="number" id="prop-land" placeholder="Ex: 500" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Nombre de pièces</label>
-                        <input type="number" id="prop-rooms" placeholder="Ex: 4" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Nombre de chambres</label>
-                        <input type="number" id="prop-bedrooms" placeholder="Ex: 2" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Année de construction</label>
-                        <input type="number" id="prop-year" placeholder="Ex: 1990" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Classe Énergétique (DPE)</label>
-                        <select id="prop-dpe" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
-                            <option value="">Non renseigné</option>
-                            <option value="A">A (Excellent)</option>
-                            <option value="B">B</option>
-                            <option value="C">C</option>
-                            <option value="D">D (Moyen)</option>
-                            <option value="E">E</option>
-                            <option value="F">F (Passoire thermique)</option>
-                            <option value="G">G (Passoire thermique)</option>
-                        </select>
-                    </div>
-
-                    <div class="col-span-1 md:col-span-2 lg:col-span-4">
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Notes et impressions libres</label>
-                        <textarea id="prop-notes" rows="4" placeholder="Points forts, points faibles, ressenti général de la visite..." class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()"></textarea>
+                        <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Notes</label>
+                        <textarea id="prop-notes" rows="4" placeholder="Points forts, points faibles..." class="w-full p-4 rounded-lg border-2 border-slate-200 focus:border-d4af37 focus:ring-0 bg-slate-50" onchange="markAsUnsaved()"></textarea>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB 2 : ÉVALUATION (CRITÈRES) -->
-            <div id="tab-eval" class="tab-content hidden bg-white p-4 sm:p-6 rounded-b-2xl shadow-sm border border-slate-200 border-t-0">
-                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-6 no-print">
-                    <p class="text-blue-800 text-sm md:text-base font-medium flex items-center gap-2">
-                        <svg class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                        Évaluez chaque critère de 0 (Rédhibitoire) à 5 (Coup de cœur). Cliquez sur une note déjà sélectionnée pour la décocher.
+            <!-- Tab: Eval -->
+            <div id="tab-eval" class="tab-content hidden bg-white p-8 rounded-b-2xl">
+                <div class="bg-gradient-to-r from-d4af37/10 to-transparent p-6 rounded-xl border-l-4 border-d4af37 mb-8 no-print">
+                    <p class="text-slate-800 text-sm font-medium flex items-center gap-2">
+                        <svg class="w-5 h-5 accent-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                        Évaluez chaque critère de 0 (Rédhibitoire) à 5 (Excellent)
                     </p>
                 </div>
-                <div id="criteria-container" class="space-y-6">
-                    <!-- Généré via JS -->
-                </div>
+                <div id="criteria-container" class="space-y-6"></div>
             </div>
 
-            <!-- TAB 3 : PIÈCES JOINTES -->
-            <div id="tab-files" class="tab-content hidden bg-white p-6 rounded-b-2xl shadow-sm border border-slate-200 border-t-0">
-                <div class="mb-6 border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:bg-slate-50 transition-colors relative no-print">
+            <!-- Tab: Files -->
+            <div id="tab-files" class="tab-content hidden bg-white p-8 rounded-b-2xl">
+                <div class="mb-8 border-3 border-dashed border-d4af37 rounded-2xl p-12 text-center hover:bg-d4af37/5 transition-colors relative no-print">
                     <input type="file" id="file-upload" multiple accept="image/*,application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleFileUpload(event)">
                     <div class="flex flex-col items-center pointer-events-none">
-                        <svg class="w-12 h-12 text-slate-400 mb-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        <h4 class="text-lg font-bold text-slate-700">Ajouter des photos ou des plans PDF</h4>
-                        <p class="text-sm text-slate-500 mt-1">Cliquez ici ou glissez-déposez vos fichiers (Les fichiers sont stockés localement sur votre navigateur)</p>
+                        <svg class="w-16 h-16 text-d4af37 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <h4 class="text-xl font-bold text-slate-900">Ajouter des fichiers</h4>
+                        <p class="text-sm text-slate-600 mt-2">Photos ou plans PDF</p>
                     </div>
                 </div>
 
-                <div id="attachments-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    <!-- Fichiers générés via JS -->
-                </div>
+                <div id="attachments-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6"></div>
             </div>
 
-            <!-- TOOLBAR EXPORT (BOTTOM) -->
-            <div class="mt-6 flex flex-col sm:flex-row justify-end gap-3 no-print">
-                <button onclick="window.print()" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-bold shadow-sm transition-colors flex items-center justify-center gap-2">
-                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
-                    Imprimer PDF
+            <!-- Actions -->
+            <div class="mt-8 flex flex-col sm:flex-row justify-end gap-4 no-print">
+                <button onclick="window.print()" class="btn-secondary px-8 py-3 rounded-lg font-bold flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4c-1.1 0-2-.9-2-2v-5c0-1.1.9-2 2-2h16c1.1 0 2 .9 2 2v5c0 1.1-.9 2-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                    Imprimer
                 </button>
             </div>
 
         </div>
 
     </main>
-    </div>
 
-    <!-- SCRIPTS -->
     <script>
-        // ==========================================
-        // 1. DÉFINITION DES CRITÈRES
-        // ==========================================
+        // CRITÈRES
         const CRITERIA_CATEGORIES = [
             {
-                id: 'environnement', title: 'Localisation & Environnement', icon: '<svg class="w-5 h-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+                id: 'environnement', title: 'Localisation & Environnement', icon: '📍',
                 criteria: [
-                    { id: 'c1', label: 'Proximité du travail', desc: 'Temps de trajet et facilité d\'accès' },
+                    { id: 'c1', label: 'Proximité du travail', desc: 'Temps de trajet' },
                     { id: 'c2', label: 'Transports en commun', desc: 'Gares, métros, bus' },
-                    { id: 'c3', label: 'Commerces & Commodités', desc: 'Boulangerie, supermarché...' },
-                    { id: 'c4', label: 'Écoles & Crèches', desc: 'Distance et réputation' },
-                    { id: 'c5', label: 'Calme (Nuisances)', desc: 'Trafic, voisinage' },
-                    { id: 'c6', label: 'Sécurité', desc: 'Sentiment de sécurité jour/nuit' },
-                    { id: 'c7', label: 'Espaces verts', desc: 'Parcs, nature à proximité' },
-                    { id: 'c8', label: 'Attractivité', desc: 'Dynamisme, projets urbains' },
+                    { id: 'c3', label: 'Commerces & Commodités', desc: 'Proximité' },
+                    { id: 'c4', label: 'Écoles & Crèches', desc: 'Distance' },
+                    { id: 'c5', label: 'Calme', desc: 'Nuisances' },
+                    { id: 'c6', label: 'Sécurité', desc: 'Jour et nuit' },
+                    { id: 'c7', label: 'Espaces verts', desc: 'Parcs' },
+                    { id: 'c8', label: 'Attractivité', desc: 'Dynamisme' },
                 ]
             },
             {
-                id: 'habitat', title: 'Caractéristiques du Bien', icon: '<svg class="w-5 h-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+                id: 'habitat', title: 'Caractéristiques du Bien', icon: '🏠',
                 criteria: [
-                    { id: 'c9', label: 'Taille / Surface', desc: 'Correspondance besoins réels' },
-                    { id: 'c10', label: 'Agencement', desc: 'Fluidité, perte d\'espace' },
-                    { id: 'c11', label: 'Exposition', desc: 'Luminosité naturelle' },
-                    { id: 'c12', label: 'État général', desc: 'Besoin de rénovation' },
-                    { id: 'c13', label: 'Isolation thermique', desc: 'Consommation énergétique' },
-                    { id: 'c14', label: 'Isolation phonique', desc: 'Bruits voisins/extérieur' },
-                    { id: 'c15', label: 'Espace extérieur', desc: 'Balcon, terrasse, jardin' },
+                    { id: 'c9', label: 'Taille / Surface', desc: 'Correspondance' },
+                    { id: 'c10', label: 'Agencement', desc: 'Fluidité' },
+                    { id: 'c11', label: 'Exposition', desc: 'Luminosité' },
+                    { id: 'c12', label: 'État général', desc: 'Rénovation' },
+                    { id: 'c13', label: 'Isolation thermique', desc: 'Efficacité' },
+                    { id: 'c14', label: 'Isolation phonique', desc: 'Bruits' },
+                    { id: 'c15', label: 'Espace extérieur', desc: 'Balcon, jardin' },
                     { id: 'c16', label: 'Vis-à-vis', desc: 'Intimité' },
-                    { id: 'c17', label: 'Vue', desc: 'Dégagée ou obstruée' },
+                    { id: 'c17', label: 'Vue', desc: 'Dégagée' },
                 ]
             },
             {
-                id: 'equipements', title: 'Équipements & Confort', icon: '<svg class="w-5 h-5 text-purple-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>',
+                id: 'equipements', title: 'Équipements & Confort', icon: '⚙️',
                 criteria: [
-                    { id: 'c18', label: 'Cuisine', desc: 'Équipement, ouverte/fermée' },
-                    { id: 'c19', label: 'Salles de bain', desc: 'État, praticité' },
-                    { id: 'c20', label: 'Rangements', desc: 'Placards intégrés' },
-                    { id: 'c21', label: 'Annexes', desc: 'Cave, grenier, local vélo' },
-                    { id: 'c22', label: 'Stationnement', desc: 'Garage, place privée' },
-                    { id: 'c23', label: 'Chauffage', desc: 'Type et efficacité' },
-                    { id: 'c24', label: 'Connectivité', desc: 'Fibre optique, réseau 4G/5G' },
+                    { id: 'c18', label: 'Cuisine', desc: 'État, équipement' },
+                    { id: 'c19', label: 'Salles de bain', desc: 'État' },
+                    { id: 'c20', label: 'Rangements', desc: 'Placards' },
+                    { id: 'c21', label: 'Annexes', desc: 'Cave, grenier' },
+                    { id: 'c22', label: 'Stationnement', desc: 'Garage' },
+                    { id: 'c23', label: 'Chauffage', desc: 'Efficacité' },
+                    { id: 'c24', label: 'Connectivité', desc: 'Fibre 5G' },
                 ]
             },
             {
-                id: 'finances', title: 'Budget & Potentiel', icon: '<svg class="w-5 h-5 text-amber-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12"/><path d="M4 14h9"/><path d="M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2"/></svg>',
+                id: 'finances', title: 'Budget & Potentiel', icon: '💰',
                 criteria: [
-                    { id: 'c25', label: 'Prix de vente', desc: 'Adéquation avec marché' },
-                    { id: 'c26', label: 'Charges', desc: 'Coût mensuel copro' },
-                    { id: 'c27', label: 'Taxes locales', desc: 'Montant taxe foncière' },
-                    { id: 'c28', label: 'Revente', desc: 'Potentiel de plus-value' },
+                    { id: 'c25', label: 'Prix de vente', desc: 'Marché' },
+                    { id: 'c26', label: 'Charges', desc: 'Copro mensuelle' },
+                    { id: 'c27', label: 'Taxes locales', desc: 'Foncière' },
+                    { id: 'c28', label: 'Revente', desc: 'Plus-value' },
                 ]
             }
         ];
         const TOTAL_CRITERIA = CRITERIA_CATEGORIES.reduce((acc, cat) => acc + cat.criteria.length, 0);
 
-        // ==========================================
-        // 2. SUPABASE CLIENT
-        // ==========================================
+        // SUPABASE
+        const LOCAL_USER_ID = '00000000-0000-0000-0000-000000000001'
         const SUPABASE_URL = 'https://kchkzcbtspqhdezifsew.supabase.co'
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjaGt6Y2J0c3BxaGRlemlmc2V3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwODg1NzcsImV4cCI6MjA5MTY2NDU3N30.MexJPPVxx-_iCUmywkUq5X6XpRcNK2fPx_9Xv4TpEvM'
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
         async function saveAuditToDB(audit) {
-            const { data: { user } } = await supabaseClient.auth.getUser()
             const { error } = await supabaseClient.from('audits').upsert({
                 ...audit,
-                user_id: user.id,
+                user_id: LOCAL_USER_ID,
                 updated_at: new Date().toISOString()
             })
             if (error) throw error
         }
 
         async function getAuditsFromDB() {
-            const { data, error } = await supabaseClient.from('audits').select('*').order('id', { ascending: false })
+            const { data, error } = await supabaseClient.from('audits').select('*').eq('user_id', LOCAL_USER_ID).order('id', { ascending: false })
             if (error) throw error
             return data || []
         }
@@ -365,285 +473,336 @@
             if (error) throw error
         }
 
-        // ==========================================
-        // 3. ÉTAT DE L'APPLICATION
-        // ==========================================
-        let auditsList = []; // Résumé léger pour le tableau de bord
-        let currentAudit = null; // Le dossier complet actuellement ouvert
-        let comparisonChart = null;
-        let isUnsaved = false;
+        // APP STATE
+        let auditsList = []
+        let currentAudit = null
+        let comparisonChart = null
+        let isUnsaved = false
 
         function getEmptyAudit() {
             return {
                 id: Date.now().toString(),
                 date: new Date().toLocaleDateString('fr-FR'),
                 name: '',
-                details: { type: '', price: '', fees: '', surface: '', land: '', rooms: '', bedrooms: '', year: '', dpe: '', notes: '' },
+                details: { type: '', price: '', fees: '', surface: '', land: '', rooms: '', bedrooms: '', year: '', dpe: '', notes: '', terrain_price: '' },
                 scores: {},
-                attachments: [] // {id, name, type, dataUrl}
-            };
+                attachments: []
+            }
         }
 
-        // ==========================================
-        // 4. INITIALISATION & AUTH
-        // ==========================================
+        // INIT
         document.addEventListener('DOMContentLoaded', async () => {
             document.body.classList.add('is-loading')
-
-            let appInitialized = false
-
-            async function initializeApp(session) {
-                if (appInitialized) return
-                appInitialized = true
-                try {
-                    document.getElementById('user-email').textContent = session.user.email
-                    document.getElementById('auth-section').classList.remove('hidden')
-                    document.getElementById('view-login').classList.add('hidden')
-                    document.getElementById('view-main').classList.remove('hidden')
-                    await loadAllAudits()
-                    renderCriteriaForm()
-                    showDashboard()
-                } catch(e) {
-                    console.error("Erreur init:", e)
-                    alert("Erreur de chargement : " + e.message)
-                } finally {
-                    document.body.classList.remove('is-loading')
-                }
+            try {
+                await loadAllAudits()
+                renderCriteriaForm()
+                showDashboard()
+            } catch(e) {
+                console.error("Erreur:", e)
+                alert("Erreur: " + e.message)
             }
-
-            supabaseClient.auth.onAuthStateChange(async (event, session) => {
-                if (event === 'SIGNED_IN' && session) {
-                    await initializeApp(session)
-                }
-                if (event === 'SIGNED_OUT') {
-                    appInitialized = false
-                    showLoginScreen()
-                }
-            })
-
-            const { data: { session } } = await supabaseClient.auth.getSession()
-            if (session) {
-                await initializeApp(session)
-            } else if (!window.location.hash.includes('access_token')) {
-                document.body.classList.remove('is-loading')
-                showLoginScreen()
-            }
-            // Si tokens présents dans le hash, onAuthStateChange prend le relais
+            document.body.classList.remove('is-loading')
         })
 
         async function loadAllAudits() {
-            auditsList = await getAuditsFromDB();
-            // Tri du plus récent au plus ancien
-            auditsList.sort((a, b) => parseInt(b.id) - parseInt(a.id));
+            auditsList = await getAuditsFromDB()
+            auditsList.sort((a, b) => parseInt(b.id) - parseInt(a.id))
         }
 
-        // ==========================================
-        // 4b. AUTH FUNCTIONS
-        // ==========================================
-        function showLoginScreen() {
-            document.getElementById('view-login').classList.remove('hidden')
-            document.getElementById('view-main').classList.add('hidden')
-            document.getElementById('auth-section').classList.add('hidden')
-        }
-
-        async function handleLogin() {
-            const email = document.getElementById('login-email').value.trim()
-            if (!email) return
-            const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } })
-            if (error) { alert('Erreur: ' + error.message); return; }
-            document.getElementById('login-form').classList.add('hidden')
-            document.getElementById('login-sent').classList.remove('hidden')
-            document.getElementById('login-email-sent').textContent = email
-        }
-
-        async function handleLogout() {
-            await supabaseClient.auth.signOut()
-        }
-
-        // ==========================================
-        // 5. NAVIGATION & VUES
-        // ==========================================
+        // NAVIGATION
         function showDashboard() {
-            if (isUnsaved && !confirm("Vous avez des modifications non sauvegardées. Voulez-vous quitter sans sauvegarder ?")) return;
-
-            document.getElementById('view-folder').classList.add('hidden');
-            document.getElementById('view-dashboard').classList.remove('hidden');
-            document.getElementById('view-main').classList.remove('hidden');
-            currentAudit = null;
-            isUnsaved = false;
-
-            renderDashboard();
+            if (isUnsaved && !confirm("Modifications non sauvegardées. Continuer ?")) return
+            document.getElementById('view-folder').classList.add('hidden')
+            document.getElementById('view-dashboard').classList.remove('hidden')
+            currentAudit = null
+            isUnsaved = false
+            renderDashboard()
         }
 
         async function openFolder(id) {
-            if (isUnsaved && !confirm("Vous avez des modifications non sauvegardées. Voulez-vous quitter ?")) return;
-
-            document.body.classList.add('is-loading');
-            const audits = await getAuditsFromDB();
-            currentAudit = audits.find(a => a.id === id);
-
+            if (isUnsaved && !confirm("Modifications non sauvegardées. Continuer ?")) return
+            document.body.classList.add('is-loading')
+            const audits = await getAuditsFromDB()
+            currentAudit = audits.find(a => a.id === id)
             if (currentAudit) {
-                populateFolderUI();
-                document.getElementById('view-dashboard').classList.add('hidden');
-                document.getElementById('view-folder').classList.remove('hidden');
-                switchFolderTab('info');
-                isUnsaved = false;
+                populateFolderUI()
+                document.getElementById('view-dashboard').classList.add('hidden')
+                document.getElementById('view-folder').classList.remove('hidden')
+                switchFolderTab('info')
+                isUnsaved = false
             }
-            document.body.classList.remove('is-loading');
+            document.body.classList.remove('is-loading')
         }
 
         function createNewAudit() {
-            currentAudit = getEmptyAudit();
-            populateFolderUI();
-            document.getElementById('view-dashboard').classList.add('hidden');
-            document.getElementById('view-folder').classList.remove('hidden');
-            switchFolderTab('info');
-            isUnsaved = true;
+            currentAudit = getEmptyAudit()
+            populateFolderUI()
+            document.getElementById('view-dashboard').classList.add('hidden')
+            document.getElementById('view-folder').classList.remove('hidden')
+            switchFolderTab('info')
+            isUnsaved = true
         }
 
         function switchFolderTab(tabName) {
-            // Cacher tout
             ['info', 'eval', 'files'].forEach(t => {
-                document.getElementById(`tab-${t}`).classList.add('hidden');
-                const btn = document.getElementById(`tab-btn-${t}`);
-                btn.className = "tab-inactive py-4 whitespace-nowrap flex items-center gap-2";
-            });
-            // Afficher actif
-            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`tab-btn-${tabName}`);
-            activeBtn.className = "tab-active py-4 whitespace-nowrap flex items-center gap-2";
+                document.getElementById(`tab-${t}`).classList.add('hidden')
+                const btn = document.getElementById(`tab-btn-${t}`)
+                btn.className = "tab-inactive py-4 whitespace-nowrap flex items-center gap-2 font-semibold"
+            })
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden')
+            const activeBtn = document.getElementById(`tab-btn-${tabName}`)
+            activeBtn.className = "tab-active py-4 whitespace-nowrap flex items-center gap-2 font-semibold"
         }
 
-        // ==========================================
-        // 6. LOGIQUE DOSSIER (FOLDER)
-        // ==========================================
+        // FOLDER
         function populateFolderUI() {
-            // Header
-            document.getElementById('prop-name').value = currentAudit.name;
-            updateFolderStats();
+            document.getElementById('prop-name').value = currentAudit.name
+            updateFolderStats()
 
-            // Onglet Infos
-            const d = currentAudit.details;
-            document.getElementById('prop-type').value = d.type || '';
-            document.getElementById('prop-price').value = d.price || '';
-            document.getElementById('prop-fees').value = d.fees || '';
-            document.getElementById('prop-surface').value = d.surface || '';
-            document.getElementById('prop-land').value = d.land || '';
-            document.getElementById('prop-rooms').value = d.rooms || '';
-            document.getElementById('prop-bedrooms').value = d.bedrooms || '';
-            document.getElementById('prop-year').value = d.year || '';
-            document.getElementById('prop-dpe').value = d.dpe || '';
-            document.getElementById('prop-notes').value = d.notes || '';
+            const d = currentAudit.details
+            document.getElementById('prop-type').value = d.type || ''
+            document.getElementById('prop-price').value = d.price || ''
+            document.getElementById('prop-fees').value = d.fees || ''
+            document.getElementById('prop-surface').value = d.surface || ''
+            document.getElementById('prop-land').value = d.land || ''
+            document.getElementById('prop-rooms').value = d.rooms || ''
+            document.getElementById('prop-bedrooms').value = d.bedrooms || ''
+            document.getElementById('prop-year').value = d.year || ''
+            document.getElementById('prop-dpe').value = d.dpe || ''
+            document.getElementById('prop-notes').value = d.notes || ''
+            document.getElementById('prop-terrain-price').value = d.terrain_price || ''
 
-            // Onglet Eval (refresh boutons)
-            updateCriteriaUI();
-
-            // Onglet Fichiers
-            renderAttachments();
+            updateCriteriaUI()
+            renderAttachments()
+            handleStateChange()
+            handlePriceChange()
         }
 
         function updateFolderStats() {
-            const keys = Object.keys(currentAudit.scores);
-            let total = 0;
-            keys.forEach(k => total += currentAudit.scores[k]);
-
-            const pct = (keys.length > 0) ? Math.round((total / (keys.length * 5)) * 100) : 0;
-
-            document.getElementById('prop-score-pct').textContent = pct;
-            document.getElementById('tab-eval-count').textContent = keys.length;
-            document.getElementById('tab-files-count').textContent = currentAudit.attachments.length;
+            const keys = Object.keys(currentAudit.scores)
+            let total = 0
+            keys.forEach(k => total += currentAudit.scores[k])
+            const pct = (keys.length > 0) ? Math.round((total / (keys.length * 5)) * 100) : 0
+            document.getElementById('prop-score-pct').textContent = pct
+            document.getElementById('tab-eval-count').textContent = keys.length
+            document.getElementById('tab-files-count').textContent = currentAudit.attachments.length
         }
 
         function markAsUnsaved() {
-            isUnsaved = true;
+            isUnsaved = true
         }
 
-        // ==========================================
-        // 7. CRITÈRES & EVALUATION
-        // ==========================================
+        // Frais de notaire selon type de bien
+        const NOTAIRE_RATES = {
+            'Ancien': 0.08,
+            'CCMI': 0.08,  // Sur le terrain uniquement
+            'VFA': 0.027
+        }
+
+        const APPORT = 40000
+        const TAUX_ANNUEL = 0.04
+        const DUREE_MOIS = 300  // 25 ans
+
+        window.handleStateChange = function() {
+            const state = document.getElementById('prop-fees').value
+            const yearSection = document.getElementById('year-section')
+            const terrainSection = document.getElementById('terrain-price-section')
+            const yearInput = document.getElementById('prop-year')
+            const dpeSelect = document.getElementById('prop-dpe')
+
+            if (state === 'Ancien') {
+                // Ancien : afficher année, masquer terrain
+                yearSection.classList.remove('hidden')
+                terrainSection.classList.add('hidden')
+                yearInput.disabled = false
+                yearInput.value = ''
+                document.getElementById('prop-terrain-price').value = ''
+            } else if (state === 'CCMI') {
+                // CCMI : masquer année, afficher terrain
+                yearSection.classList.add('hidden')
+                terrainSection.classList.remove('hidden')
+                yearInput.disabled = true
+                yearInput.value = ''
+                dpeSelect.value = 'A'
+            } else if (state === 'VFA') {
+                // VFA : masquer année et terrain
+                yearSection.classList.add('hidden')
+                terrainSection.classList.add('hidden')
+                yearInput.disabled = true
+                yearInput.value = ''
+                document.getElementById('prop-terrain-price').value = ''
+                dpeSelect.value = 'A'
+            } else {
+                // Aucune sélection
+                yearSection.classList.remove('hidden')
+                terrainSection.classList.add('hidden')
+                yearInput.disabled = false
+            }
+
+            markAsUnsaved()
+            handlePriceChange()
+        }
+
+        window.handlePriceChange = function() {
+            const priceInput = document.getElementById('prop-price')
+            const typeSelect = document.getElementById('prop-type')
+            const stateSelect = document.getElementById('prop-fees')
+            const terrainPriceInput = document.getElementById('prop-terrain-price')
+
+            // Vérifier que les éléments existent
+            if (!priceInput || !typeSelect || !stateSelect) return
+
+            const price = parseFloat(priceInput.value) || 0
+            const type = typeSelect.value
+            const state = stateSelect.value
+            const terrainPrice = parseFloat(terrainPriceInput?.value) || 0
+
+            console.log('Calcul:', { price, terrainPrice, type, state })
+
+            // Réinitialiser les affichages
+            const resetDisplay = () => {
+                document.getElementById('calc-notaire').textContent = '0'
+                document.getElementById('calc-notaire-pct').textContent = ''
+                document.getElementById('calc-total').textContent = '0'
+                document.getElementById('calc-loan').textContent = '0'
+                document.getElementById('calc-monthly').textContent = '0'
+                document.getElementById('calc-interests').textContent = '0'
+                document.getElementById('calc-real').textContent = '0'
+            }
+
+            if (!price || !type || !state) {
+                resetDisplay()
+                return
+            }
+
+            // La catégorie détermine directement les frais
+            let notaireRate = NOTAIRE_RATES[state] || 0
+
+            console.log('Bien:', state, 'Taux:', notaireRate)
+
+            // Calculer les frais selon le type
+            let notaire = 0
+            let total = 0
+
+            if (state === 'CCMI') {
+                // Pour CCMI: frais de notaire sur le terrain uniquement
+                notaire = terrainPrice * notaireRate
+                total = price + terrainPrice + notaire
+            } else {
+                // Pour Ancien et VFA: frais de notaire sur le prix principal
+                notaire = price * notaireRate
+                total = price + notaire
+            }
+
+            let loan = total - APPORT
+
+            if (loan <= 0) {
+                resetDisplay()
+                return
+            }
+
+            // Calcul mensualité avec formule emprunt
+            let tauxMensuel = TAUX_ANNUEL / 12
+            let denominator = Math.pow(1 + tauxMensuel, DUREE_MOIS) - 1
+            let monthly = loan * (tauxMensuel * Math.pow(1 + tauxMensuel, DUREE_MOIS)) / denominator
+
+            // Calcul intérêts
+            let interests = (monthly * DUREE_MOIS) - loan
+            let costReal = price + (state === 'CCMI' ? terrainPrice : 0) + notaire + interests
+
+            // Affichage avec séparateurs de milliers
+            document.getElementById('calc-notaire').textContent = Math.round(notaire).toLocaleString('fr-FR')
+            document.getElementById('calc-notaire-pct').textContent = `(${(notaireRate * 100).toFixed(2)}%)`
+            document.getElementById('calc-total').textContent = Math.round(total).toLocaleString('fr-FR')
+            document.getElementById('calc-loan').textContent = Math.round(loan).toLocaleString('fr-FR')
+            document.getElementById('calc-monthly').textContent = Math.round(monthly).toLocaleString('fr-FR')
+            document.getElementById('calc-interests').textContent = Math.round(interests).toLocaleString('fr-FR')
+            document.getElementById('calc-real').textContent = Math.round(costReal).toLocaleString('fr-FR')
+
+            markAsUnsaved()
+        }
+
+        // CRITERIA
         function renderCriteriaForm() {
-            const container = document.getElementById('criteria-container');
-            container.innerHTML = '';
+            const container = document.getElementById('criteria-container')
+            container.innerHTML = ''
 
             CRITERIA_CATEGORIES.forEach(category => {
-                const section = document.createElement('div');
-                section.className = 'border border-slate-200 rounded-xl overflow-hidden print-break-inside-avoid';
+                const section = document.createElement('div')
+                section.className = 'border-2 border-slate-200 rounded-2xl overflow-hidden print-break-inside-avoid hover:border-d4af37 transition-colors'
 
-                let critHtml = '';
+                let critHtml = ''
                 category.criteria.forEach(crit => {
                     critHtml += `
-                        <div class="px-4 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                        <div class="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 last:border-0 hover:bg-d4af37/5">
                             <div class="flex-1">
-                                <div class="font-bold text-slate-800 text-[15px]">${crit.label}</div>
+                                <div class="font-bold text-slate-900">${crit.label}</div>
                                 <div class="text-xs text-slate-500">${crit.desc}</div>
                             </div>
-                            <div class="flex items-center gap-1 no-print" id="btn-group-${crit.id}">
+                            <div class="flex items-center gap-2 no-print" id="btn-group-${crit.id}">
                                 ${[0,1,2,3,4,5].map(val => `
-                                    <button onclick="handleScoreClick('${crit.id}', ${val})" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full text-sm font-bold border border-slate-200 text-slate-600 hover:bg-slate-200 transition-colors crit-btn" data-crit="${crit.id}" data-val="${val}">
+                                    <button onclick="handleScoreClick('${crit.id}', ${val})" class="w-10 h-10 rounded-full text-sm font-bold border-2 border-slate-300 text-slate-600 hover:border-d4af37 hover:text-d4af37 transition-all crit-btn" data-crit="${crit.id}" data-val="${val}">
                                         ${val}
                                     </button>
                                 `).join('')}
                             </div>
                             <div class="hidden print:block font-bold text-slate-800">
-                                Note : <span id="print-score-${crit.id}">___</span> / 5
+                                <span id="print-score-${crit.id}">___</span>/5
                             </div>
                         </div>
-                    `;
-                });
+                    `
+                })
 
                 section.innerHTML = `
-                    <div class="bg-slate-100/70 px-4 py-3 flex items-center gap-2 border-b border-slate-200">
-                        ${category.icon} <h3 class="font-bold text-slate-800">${category.title}</h3>
+                    <div class="bg-gradient-to-r from-d4af37/10 to-transparent px-6 py-4 flex items-center gap-3 border-b-2 border-slate-200">
+                        <span class="text-2xl">${category.icon}</span>
+                        <h3 class="font-bold text-slate-900">${category.title}</h3>
                     </div>
                     <div>${critHtml}</div>
-                `;
-                container.appendChild(section);
-            });
+                `
+                container.appendChild(section)
+            })
         }
 
         function updateCriteriaUI() {
-            // Reset all
             document.querySelectorAll('.crit-btn').forEach(btn => {
-                btn.className = "w-8 h-8 sm:w-10 sm:h-10 rounded-full text-sm font-bold border border-slate-200 text-slate-600 hover:bg-slate-200 transition-colors crit-btn";
-            });
-            document.querySelectorAll('[id^="print-score-"]').forEach(el => el.textContent = "___");
+                btn.className = "w-10 h-10 rounded-full text-sm font-bold border-2 border-slate-300 text-slate-600 hover:border-d4af37 hover:text-d4af37 transition-all crit-btn"
+            })
+            document.querySelectorAll('[id^="print-score-"]').forEach(el => el.textContent = "___")
 
-            // Apply current scores
             Object.keys(currentAudit.scores).forEach(critId => {
-                const val = currentAudit.scores[critId];
-                const btn = document.querySelector(`.crit-btn[data-crit="${critId}"][data-val="${val}"]`);
+                const val = currentAudit.scores[critId]
+                const btn = document.querySelector(`.crit-btn[data-crit="${critId}"][data-val="${val}"]`)
                 if(btn) {
-                    btn.className = "w-8 h-8 sm:w-10 sm:h-10 rounded-full text-sm font-bold border-transparent bg-blue-600 text-white shadow-md scale-110 transition-all crit-btn";
+                    btn.className = "w-10 h-10 rounded-full text-sm font-bold border-2 border-d4af37 bg-d4af37 text-white shadow-lg scale-110 transition-all crit-btn"
                 }
-                const printSpan = document.getElementById(`print-score-${critId}`);
-                if(printSpan) printSpan.textContent = val;
-            });
+                const printSpan = document.getElementById(`print-score-${critId}`)
+                if(printSpan) printSpan.textContent = val
+            })
         }
 
         window.handleScoreClick = function(critId, val) {
             if(currentAudit.scores[critId] === val) {
-                delete currentAudit.scores[critId]; // Deselect
+                delete currentAudit.scores[critId]
             } else {
-                currentAudit.scores[critId] = val; // Select
+                currentAudit.scores[critId] = val
             }
-            markAsUnsaved();
-            updateCriteriaUI();
-            updateFolderStats();
+            markAsUnsaved()
+            updateCriteriaUI()
+            updateFolderStats()
         }
 
-        // ==========================================
-        // 8. PIÈCES JOINTES (FICHIERS)
-        // ==========================================
+        // FILES
         window.handleFileUpload = function(event) {
-            const files = event.target.files;
-            if(!files || files.length === 0) return;
+            const files = event.target.files
+            if(!files || files.length === 0) return
 
             Array.from(files).forEach(file => {
                 if(file.size > 5 * 1024 * 1024) {
-                    alert(`Le fichier ${file.name} est trop volumineux (Max 5Mo recommandé).`);
-                    // On pourrait compresser ici, mais on bloque par sécurité
+                    alert(`${file.name} trop volumineux (Max 5Mo)`)
+                    return
                 }
-                const reader = new FileReader();
+                const reader = new FileReader()
                 reader.onload = (e) => {
                     currentAudit.attachments.push({
                         id: 'file_' + Date.now() + Math.floor(Math.random()*1000),
@@ -651,89 +810,81 @@
                         type: file.type,
                         dataUrl: e.target.result,
                         showInDashboard: false
-                    });
-                    markAsUnsaved();
-                    renderAttachments();
-                    updateFolderStats();
-                };
-                reader.readAsDataURL(file);
-            });
-        };
+                    })
+                    markAsUnsaved()
+                    renderAttachments()
+                    updateFolderStats()
+                }
+                reader.readAsDataURL(file)
+            })
+        }
 
         window.deleteAttachment = function(id) {
             if(confirm("Supprimer ce fichier ?")) {
-                currentAudit.attachments = currentAudit.attachments.filter(f => f.id !== id);
-                markAsUnsaved();
-                renderAttachments();
-                updateFolderStats();
+                currentAudit.attachments = currentAudit.attachments.filter(f => f.id !== id)
+                markAsUnsaved()
+                renderAttachments()
+                updateFolderStats()
             }
-        };
+        }
 
         window.toggleAttachmentVisibility = function(id, event) {
-            event.stopPropagation();
-            const file = currentAudit.attachments.find(f => f.id === id);
+            event.stopPropagation()
+            const file = currentAudit.attachments.find(f => f.id === id)
             if(file && file.type.startsWith('image/')) {
-                const currentState = file.showInDashboard;
-                // Désactiver toutes les autres images (1 seule miniature par bien)
-                currentAudit.attachments.forEach(f => f.showInDashboard = false);
-                // Basculer l'état
-                file.showInDashboard = !currentState;
-                markAsUnsaved();
-                renderAttachments();
+                const currentState = file.showInDashboard
+                currentAudit.attachments.forEach(f => f.showInDashboard = false)
+                file.showInDashboard = !currentState
+                markAsUnsaved()
+                renderAttachments()
             }
-        };
+        }
 
         function renderAttachments() {
-            const container = document.getElementById('attachments-grid');
-            container.innerHTML = '';
+            const container = document.getElementById('attachments-grid')
+            container.innerHTML = ''
 
             if(currentAudit.attachments.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center py-8 text-slate-500">Aucune pièce jointe dans ce dossier.</div>`;
-                return;
+                container.innerHTML = `<div class="col-span-full text-center py-12 text-slate-500">Aucun fichier</div>`
+                return
             }
 
             currentAudit.attachments.forEach(file => {
-                const isImg = file.type.startsWith('image/');
+                const isImg = file.type.startsWith('image/')
                 const thumb = isImg
-                    ? `<div class="h-32 w-full bg-cover bg-center" style="background-image: url('${file.dataUrl}')"></div>`
-                    : `<div class="h-32 w-full flex flex-col items-center justify-center bg-red-50 text-red-500"><svg class="w-10 h-10 mb-2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>PDF</div>`;
+                    ? `<div class="h-40 w-full bg-cover bg-center" style="background-image: url('${file.dataUrl}')"></div>`
+                    : `<div class="h-40 w-full flex flex-col items-center justify-center bg-slate-100"><svg class="w-8 h-8 mb-2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V7.5z"/><polyline points="14 2 14 8 20 8"/></svg><span class="text-xs font-semibold text-slate-600">PDF</span></div>`
 
                 const eyeBtn = isImg ? `
-                    <button onclick="toggleAttachmentVisibility('${file.id}', event)" class="absolute top-2 left-2 p-1.5 rounded-lg shadow-sm transition-colors ${file.showInDashboard ? 'bg-blue-600 text-white' : 'bg-white/90 text-slate-400 hover:text-blue-600 hover:bg-white'}" title="${file.showInDashboard ? 'Image affichée sur le tableau de bord' : 'Définir comme miniature du bien'}">
-                        ${file.showInDashboard
-                            ? '<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>'
-                            : '<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>'
-                        }
+                    <button onclick="toggleAttachmentVisibility('${file.id}', event)" class="absolute top-3 left-3 p-2 rounded-lg shadow-md transition-all ${file.showInDashboard ? 'bg-d4af37 text-white' : 'bg-white/90 text-slate-600'}">
+                        ${file.showInDashboard ? '👁️' : '👁️‍🗨️'}
                     </button>
-                ` : '';
+                ` : ''
 
                 container.innerHTML += `
-                    <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm relative group">
+                    <div class="card-luxury rounded-xl overflow-hidden relative group">
                         ${thumb}
                         ${eyeBtn}
-                        <div class="p-2 bg-white">
+                        <div class="p-3 bg-white">
                             <p class="text-xs font-semibold text-slate-700 truncate" title="${file.name}">${file.name}</p>
                         </div>
-                        <button onclick="deleteAttachment('${file.id}')" class="absolute top-2 right-2 bg-white/90 text-red-500 p-1.5 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50" title="Supprimer">
-                            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        <button onclick="deleteAttachment('${file.id}')" class="absolute top-3 right-3 bg-white/90 text-red-500 p-2 rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
+                            🗑️
                         </button>
-                        ${isImg ? '' : `<a href="${file.dataUrl}" download="${file.name}" class="absolute top-2 left-2 bg-white/90 text-blue-600 p-1.5 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-50" title="Télécharger"><svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></a>`}
+                        ${isImg ? '' : `<a href="${file.dataUrl}" download="${file.name}" class="absolute top-3 left-12 bg-white/90 text-blue-600 p-2 rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-opacity">⬇️</a>`}
                     </div>
-                `;
-            });
+                `
+            })
         }
 
-        // ==========================================
-        // 9. SAUVEGARDE GLOBALE
-        // ==========================================
+        // SAVE
         window.saveCurrentAudit = async function() {
-            const name = document.getElementById('prop-name').value.trim();
-            if(!name) { alert("Veuillez donner un nom au dossier."); return; }
+            const name = document.getElementById('prop-name').value.trim()
+            if(!name) { alert("Donnez un nom au dossier"); return }
 
-            document.body.classList.add('is-loading');
+            document.body.classList.add('is-loading')
 
-            // Récupérer form infos
-            currentAudit.name = name;
+            currentAudit.name = name
             currentAudit.details = {
                 type: document.getElementById('prop-type').value,
                 price: document.getElementById('prop-price').value,
@@ -744,106 +895,102 @@
                 bedrooms: document.getElementById('prop-bedrooms').value,
                 year: document.getElementById('prop-year').value,
                 dpe: document.getElementById('prop-dpe').value,
-                notes: document.getElementById('prop-notes').value
-            };
+                notes: document.getElementById('prop-notes').value,
+                terrain_price: document.getElementById('prop-terrain-price').value
+            }
 
-            await saveAuditToDB(currentAudit);
-            await loadAllAudits();
+            try {
+                await saveAuditToDB(currentAudit)
+                await loadAllAudits()
+                isUnsaved = false
 
-            isUnsaved = false;
-            document.body.classList.remove('is-loading');
-
-            // Visuel bouton
-            const btn = document.getElementById('btn-save');
-            const ogHtml = btn.innerHTML;
-            btn.innerHTML = `<svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Sauvegardé`;
-            btn.classList.replace('bg-blue-600', 'bg-emerald-500');
-            btn.classList.replace('hover:bg-blue-700', 'hover:bg-emerald-600');
-            setTimeout(() => {
-                btn.innerHTML = ogHtml;
-                btn.classList.replace('bg-emerald-500', 'bg-blue-600');
-                btn.classList.replace('hover:bg-emerald-600', 'hover:bg-blue-700');
-            }, 2000);
+                const btn = document.getElementById('btn-save')
+                const ogHtml = btn.innerHTML
+                btn.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Sauvegardé`
+                btn.classList.add('!bg-emerald-600', '!border-emerald-600')
+                setTimeout(() => {
+                    btn.innerHTML = ogHtml
+                    btn.classList.remove('!bg-emerald-600', '!border-emerald-600')
+                }, 2000)
+            } catch(e) {
+                alert("Erreur sauvegarde: " + e.message)
+            }
+            document.body.classList.remove('is-loading')
         }
 
         window.deleteAudit = async function(id, event) {
-            event.stopPropagation(); // Évite d'ouvrir le dossier en cliquant sur Supprimer
-            if(confirm("Supprimer définitivement ce dossier et toutes ses pièces jointes ?")) {
-                document.body.classList.add('is-loading');
-                await deleteAuditFromDB(id);
-                await loadAllAudits();
-                renderDashboard();
-                document.body.classList.remove('is-loading');
+            event.stopPropagation()
+            if(confirm("Supprimer ce dossier définitivement ?")) {
+                document.body.classList.add('is-loading')
+                await deleteAuditFromDB(id)
+                await loadAllAudits()
+                renderDashboard()
+                document.body.classList.remove('is-loading')
             }
         }
 
-        // ==========================================
-        // 10. DASHBOARD RENDER
-        // ==========================================
+        // DASHBOARD
         function renderDashboard() {
-            const grid = document.getElementById('audits-grid');
-            grid.innerHTML = '';
+            const grid = document.getElementById('audits-grid')
+            grid.innerHTML = ''
 
             if (auditsList.length === 0) {
-                grid.innerHTML = '<div class="col-span-full bg-slate-100 rounded-xl p-8 text-center text-slate-500 border border-slate-200 border-dashed">Aucun dossier pour le moment. Cliquez sur "Nouveau Dossier" pour commencer.</div>';
-                if(comparisonChart) comparisonChart.destroy();
-                return;
+                grid.innerHTML = '<div class="col-span-full bg-gradient-to-br from-slate-50 to-white rounded-xl p-12 text-center border-2 border-dashed border-d4af37">Aucun dossier. Créez-en un pour commencer.</div>'
+                if(comparisonChart) comparisonChart.destroy()
+                return
             }
 
-            // Affichage des cartes
             auditsList.forEach(audit => {
-                // Calcul pct
-                const keys = Object.keys(audit.scores);
-                let total = 0; keys.forEach(k => total += audit.scores[k]);
-                const pct = keys.length > 0 ? Math.round((total / (keys.length * 5)) * 100) : 0;
+                const keys = Object.keys(audit.scores)
+                let total = 0
+                keys.forEach(k => total += audit.scores[k])
+                const pct = keys.length > 0 ? Math.round((total / (keys.length * 5)) * 100) : 0
 
-                const scoreColor = pct >= 80 ? 'text-emerald-500' : pct >= 60 ? 'text-blue-500' : pct >= 40 ? 'text-amber-500' : 'text-red-500';
-                const barColor = pct >= 80 ? 'bg-emerald-500' : pct >= 60 ? 'bg-blue-500' : pct >= 40 ? 'bg-amber-500' : 'bg-red-500';
+                const scoreColor = pct >= 80 ? 'text-emerald-600' : pct >= 60 ? 'text-d4af37' : pct >= 40 ? 'text-amber-600' : 'text-red-600'
+                const barColor = pct >= 80 ? 'bg-emerald-600' : pct >= 60 ? 'bg-d4af37' : pct >= 40 ? 'bg-amber-600' : 'bg-red-600'
 
-                // Synthèse infos
-                const infos = [];
-                if(audit.details.price) infos.push(`${audit.details.price} €`);
-                if(audit.details.surface) infos.push(`${audit.details.surface} m²`);
-                const infoStr = infos.length > 0 ? infos.join(' • ') : 'Données incomplètes';
+                const infos = []
+                if(audit.details.price) infos.push(`${audit.details.price} €`)
+                if(audit.details.surface) infos.push(`${audit.details.surface} m²`)
+                const infoStr = infos.length > 0 ? infos.join(' • ') : 'Incomplète'
 
-                const coverImg = audit.attachments && audit.attachments.find(f => f.showInDashboard && f.type.startsWith('image/'));
+                const coverImg = audit.attachments && audit.attachments.find(f => f.showInDashboard && f.type.startsWith('image/'))
                 const coverHtml = coverImg
-                    ? `<div class="h-48 w-full bg-cover bg-center border-b border-slate-100" style="background-image: url('${coverImg.dataUrl}')"></div>`
-                    : '';
+                    ? `<div class="h-48 w-full bg-cover bg-center border-b-2 border-d4af37" style="background-image: url('${coverImg.dataUrl}')"></div>`
+                    : ''
 
                 grid.innerHTML += `
-                    <div onclick="openFolder('${audit.id}')" class="bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 hover:shadow-md cursor-pointer transition-all flex flex-col group overflow-hidden">
+                    <div onclick="openFolder('${audit.id}')" class="card-luxury rounded-xl overflow-hidden shadow-lg cursor-pointer flex flex-col group">
                         ${coverHtml}
-                        <div class="p-5 flex flex-col flex-1 justify-between">
+                        <div class="p-6 flex flex-col flex-1 justify-between">
                             <div>
-                                <div class="flex justify-between items-start mb-2">
-                                    <h3 class="font-bold text-lg text-slate-900 leading-tight group-hover:text-blue-600 transition-colors">${audit.name || 'Dossier sans nom'}</h3>
-                                    <button onclick="deleteAudit('${audit.id}', event)" class="text-slate-300 hover:text-red-500 transition-colors ml-2"><svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="font-black text-lg text-slate-900 group-hover:text-d4af37 transition-colors">${audit.name || 'Sans nom'}</h3>
+                                    <button onclick="deleteAudit('${audit.id}', event)" class="text-slate-300 hover:text-red-500 transition-colors">🗑️</button>
                                 </div>
-                                <p class="text-sm text-slate-500 mb-4">${infoStr}</p>
+                                <p class="text-sm text-slate-600 mb-4">${infoStr}</p>
 
-                                <div class="flex items-end gap-2 mb-2">
-                                    <span class="text-3xl font-black ${scoreColor}">${pct}%</span>
-                                    <span class="text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Affinité</span>
+                                <div class="flex items-end gap-3 mb-4">
+                                    <span class="text-4xl font-black ${scoreColor}">${pct}%</span>
+                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Affinité</span>
                                 </div>
-                                <div class="w-full bg-slate-100 h-1.5 rounded-full mb-4">
-                                    <div class="h-1.5 rounded-full ${barColor}" style="width: ${pct}%"></div>
+                                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                    <div class="h-2 rounded-full ${barColor}" style="width: ${pct}%"></div>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-4 text-xs text-slate-400 font-medium border-t border-slate-100 pt-3">
-                                <span class="flex items-center gap-1"><svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ${audit.date}</span>
-                                <span class="flex items-center gap-1"><svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> ${audit.attachments.length} pj</span>
+                            <div class="flex items-center gap-4 text-xs text-slate-500 font-medium border-t border-slate-100 pt-3 mt-4">
+                                <span>📅 ${audit.date}</span>
+                                <span>📎 ${audit.attachments.length}</span>
                             </div>
                         </div>
                     </div>
-                `;
-            });
+                `
+            })
 
-            // Refresh Chart (10 derniers)
-            const ctx = document.getElementById('comparisonChart');
-            if(comparisonChart) comparisonChart.destroy();
+            const ctx = document.getElementById('comparisonChart')
+            if(comparisonChart) comparisonChart.destroy()
 
-            const chartData = [...auditsList].slice(0, 10).reverse(); // On prend les 10 derniers, dans l'ordre chrono
+            const chartData = [...auditsList].slice(0, 10).reverse()
 
             comparisonChart = new Chart(ctx, {
                 type: 'bar',
@@ -852,20 +999,29 @@
                     datasets: [{
                         label: 'Affinité (%)',
                         data: chartData.map(a => {
-                            const keys = Object.keys(a.scores);
-                            let total = 0; keys.forEach(k => total += a.scores[k]);
-                            return keys.length > 0 ? Math.round((total / (keys.length * 5)) * 100) : 0;
+                            const keys = Object.keys(a.scores)
+                            let total = 0
+                            keys.forEach(k => total += a.scores[k])
+                            return keys.length > 0 ? Math.round((total / (keys.length * 5)) * 100) : 0
                         }),
-                        backgroundColor: 'rgba(37, 99, 235, 0.8)',
-                        borderRadius: 6,
+                        backgroundColor: '#d4af37',
+                        borderColor: '#1a1a1a',
+                        borderWidth: 2,
+                        borderRadius: 8,
                     }]
                 },
                 options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, max: 100 } },
-                    plugins: { legend: { display: false } }
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: 100, ticks: { color: '#666', font: { weight: 'bold' } }, grid: { color: '#e5e5e5' } },
+                        x: { ticks: { color: '#666', font: { weight: 'bold' } }, grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
                 }
-            });
+            })
         }
 
     </script>

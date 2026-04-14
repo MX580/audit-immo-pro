@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Immobilier Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .tab-active { border-bottom: 2px solid #2563eb; color: #1e40af; font-weight: 700; }
+        .tab-inactive { color: #64748b; font-weight: 500; }
+        .tab-inactive:hover { color: #334155; }
+        
+        /* Loading overlay */
+        #loader { display: none; }
+        .is-loading #loader { display: flex; }
+
+        @media print {
+            .no-print { display: none !important; }
+            .print-break-inside-avoid { break-inside: avoid; }
+            body { background-color: white !important; }
+            .shadow-sm { box-shadow: none !important; border: none !important; }
+            /* Force l'affichage de tous les onglets à l'impression */
+            .tab-content { display: block !important; }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 font-sans pb-20">
+
+    <!-- LOADER -->
+    <div id="loader" class="fixed inset-0 bg-slate-900/50 z-50 items-center justify-center backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-xl shadow-xl flex flex-col items-center">
+            <svg class="animate-spin w-10 h-10 text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <p class="font-bold text-slate-800">Traitement en cours...</p>
+        </div>
+    </div>
+
+    <!-- MAIN HEADER -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 no-print shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="showDashboard()">
+                <div class="bg-blue-600 p-2 rounded-lg text-white">
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">AuditImmo<span class="text-blue-600">Pro</span></h1>
+            </div>
+            <button onclick="showDashboard()" id="btn-nav-dashboard" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                <span class="hidden sm:inline">Tableau de bord</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-6">
+
+        <!-- ========================================== -->
+        <!-- VUE : TABLEAU DE BORD (DASHBOARD)          -->
+        <!-- ========================================== -->
+        <div id="view-dashboard" class="space-y-8">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-3xl font-bold text-slate-800">Mes Dossiers</h2>
+                    <p class="text-slate-500 mt-1">Comparez et gérez vos visites immobilières.</p>
+                </div>
+                <button onclick="createNewAudit()" class="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-colors flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Nouveau Dossier
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- CHART -->
+                <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                        Scores d'affinité (%)
+                    </h3>
+                    <div class="w-full h-64">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- LIST -->
+                <div class="lg:col-span-2">
+                    <div id="audits-grid" class="grid sm:grid-cols-2 gap-4">
+                        <!-- Injecté via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VUE : DOSSIER D'AUDIT (FOLDER)             -->
+        <!-- ========================================== -->
+        <div id="view-folder" class="hidden">
+            
+            <!-- FOLDER HEADER -->
+            <div class="bg-white rounded-t-2xl shadow-sm border border-slate-200 border-b-0 p-4 md:p-6 no-print">
+                <div class="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+                    <div class="w-full flex-1">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Nom du bien / Adresse</label>
+                        <input type="text" id="prop-name" placeholder="Ex: Maison 4 pièces - Lyon 3" class="w-full text-2xl md:text-3xl font-bold text-slate-900 border-0 border-b-2 border-transparent hover:border-slate-200 focus:border-blue-500 focus:ring-0 p-0 bg-transparent transition-colors placeholder-slate-300" onchange="markAsUnsaved()">
+                    </div>
+                    <div class="flex items-center gap-2 w-full md:w-auto">
+                        <div class="text-right mr-4 hidden md:block">
+                            <div class="text-sm font-semibold text-slate-500">Score Global</div>
+                            <div class="text-2xl font-black text-blue-600"><span id="prop-score-pct">0</span>%</div>
+                        </div>
+                        <button onclick="saveCurrentAudit()" id="btn-save" class="flex-1 md:flex-none px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-colors flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                            Sauvegarder
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FOLDER TABS -->
+            <div class="bg-slate-100 border border-slate-200 px-4 flex gap-6 overflow-x-auto no-print">
+                <button onclick="switchFolderTab('info')" id="tab-btn-info" class="tab-active py-4 whitespace-nowrap flex items-center gap-2">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    Informations Clés
+                </button>
+                <button onclick="switchFolderTab('eval')" id="tab-btn-eval" class="tab-inactive py-4 whitespace-nowrap flex items-center gap-2">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></svg>
+                    Évaluation (<span id="tab-eval-count">0</span>/28)
+                </button>
+                <button onclick="switchFolderTab('files')" id="tab-btn-files" class="tab-inactive py-4 whitespace-nowrap flex items-center gap-2">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                    Pièces Jointes (<span id="tab-files-count">0</span>)
+                </button>
+            </div>
+
+            <!-- TAB 1 : INFORMATIONS -->
+            <div id="tab-info" class="tab-content bg-white p-6 rounded-b-2xl shadow-sm border border-slate-200 border-t-0">
+                <h3 class="text-xl font-bold mb-6 text-slate-800 print:block">Fiche d'identité du bien</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Type de bien</label>
+                        <select id="prop-type" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
+                            <option value="">Sélectionner...</option>
+                            <option value="Appartement">Appartement</option>
+                            <option value="Maison">Maison / Villa</option>
+                            <option value="Terrain">Terrain</option>
+                            <option value="Immeuble">Immeuble</option>
+                            <option value="Autre">Autre</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Prix de vente (€)</label>
+                        <input type="number" id="prop-price" placeholder="Ex: 250000" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Frais annexe / Travaux estimés (€)</label>
+                        <input type="number" id="prop-fees" placeholder="Ex: 15000" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Surface Habitable (m²)</label>
+                        <input type="number" id="prop-surface" placeholder="Ex: 85" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Surface Terrain (m²)</label>
+                        <input type="number" id="prop-land" placeholder="Ex: 500" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Nombre de pièces</label>
+                        <input type="number" id="prop-rooms" placeholder="Ex: 4" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Nombre de chambres</label>
+                        <input type="number" id="prop-bedrooms" placeholder="Ex: 2" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Année de construction</label>
+                        <input type="number" id="prop-year" placeholder="Ex: 1990" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Classe Énergétique (DPE)</label>
+                        <select id="prop-dpe" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()">
+                            <option value="">Non renseigné</option>
+                            <option value="A">A (Excellent)</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D (Moyen)</option>
+                            <option value="E">E</option>
+                            <option value="F">F (Passoire thermique)</option>
+                            <option value="G">G (Passoire thermique)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-span-1 md:col-span-2 lg:col-span-4">
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Notes et impressions libres</label>
+                        <textarea id="prop-notes" rows="4" placeholder="Points forts, points faibles, ressenti général de la visite..." class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-slate-50" onchange="markAsUnsaved()"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2 : ÉVALUATION (CRITÈRES) -->
+            <div id="tab-eval" class="tab-content hidden bg-white p-4 sm:p-6 rounded-b-2xl shadow-sm border border-slate-200 border-t-0">
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-6 no-print">
+                    <p class="text-blue-800 text-sm md:text-base font-medium flex items-center gap-2">
+                        <svg class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                        Évaluez chaque critère de 0 (Rédhibitoire) à 5 (Coup de cœur). Cliquez sur une note déjà sélectionnée pour la décocher.
+                    </p>
+                </div>
+                <div id="criteria-container" class="space-y-6">
+                    <!-- Généré via JS -->
+                </div>
+            </div>
+
+            <!-- TAB 3 : PIÈCES JOINTES -->
+            <div id="tab-files" class="tab-content hidden bg-white p-6 rounded-b-2xl shadow-sm border border-slate-200 border-t-0">
+                <div class="mb-6 border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:bg-slate-50 transition-colors relative no-print">
+                    <input type="file" id="file-upload" multiple accept="image/*,application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleFileUpload(event)">
+                    <div class="flex flex-col items-center pointer-events-none">
+                        <svg class="w-12 h-12 text-slate-400 mb-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <h4 class="text-lg font-bold text-slate-700">Ajouter des photos ou des plans PDF</h4>
+                        <p class="text-sm text-slate-500 mt-1">Cliquez ici ou glissez-déposez vos fichiers (Les fichiers sont stockés localement sur votre navigateur)</p>
+                    </div>
+                </div>
+
+                <div id="attachments-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <!-- Fichiers générés via JS -->
+                </div>
+            </div>
+
+            <!-- TOOLBAR EXPORT (BOTTOM) -->
+            <div class="mt-6 flex flex-col sm:flex-row justify-end gap-3 no-print">
+                <button onclick="window.print()" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-bold shadow-sm transition-colors flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                    Imprimer PDF
+                </button>
+                <button onclick="handleExportToClipboard()" id="btn-export-ia" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold shadow-sm transition-colors flex items-center justify-center gap-2">
+                    <svg id="icon-copy" class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    <svg id="icon-check" class="w-4 h-4 hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span id="text-export-ia">Copier pour analyse IA</span>
+                </button>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- SCRIPTS -->
+    <script>
+        // ==========================================
+        // 1. DÉFINITION DES CRITÈRES
+        // ==========================================
+        const CRITERIA_CATEGORIES = [
+            {
+                id: 'environnement', title: 'Localisation & Environnement', icon: '<svg class="w-5 h-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+                criteria: [
+                    { id: 'c1', label: 'Proximité du travail', desc: 'Temps de trajet et facilité d\'accès' },
+                    { id: 'c2', label: 'Transports en commun', desc: 'Gares, métros, bus' },
+                    { id: 'c3', label: 'Commerces & Commodités', desc: 'Boulangerie, supermarché...' },
+                    { id: 'c4', label: 'Écoles & Crèches', desc: 'Distance et réputation' },
+                    { id: 'c5', label: 'Calme (Nuisances)', desc: 'Trafic, voisinage' },
+                    { id: 'c6', label: 'Sécurité', desc: 'Sentiment de sécurité jour/nuit' },
+                    { id: 'c7', label: 'Espaces verts', desc: 'Parcs, nature à proximité' },
+                    { id: 'c8', label: 'Attractivité', desc: 'Dynamisme, projets urbains' },
+                ]
+            },
+            {
+                id: 'habitat', title: 'Caractéristiques du Bien', icon: '<svg class="w-5 h-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+                criteria: [
+                    { id: 'c9', label: 'Taille / Surface', desc: 'Correspondance besoins réels' },
+                    { id: 'c10', label: 'Agencement', desc: 'Fluidité, perte d\'espace' },
+                    { id: 'c11', label: 'Exposition', desc: 'Luminosité naturelle' },
+                    { id: 'c12', label: 'État général', desc: 'Besoin de rénovation' },
+                    { id: 'c13', label: 'Isolation thermique', desc: 'Consommation énergétique' },
+                    { id: 'c14', label: 'Isolation phonique', desc: 'Bruits voisins/extérieur' },
+                    { id: 'c15', label: 'Espace extérieur', desc: 'Balcon, terrasse, jardin' },
+                    { id: 'c16', label: 'Vis-à-vis', desc: 'Intimité' },
+                    { id: 'c17', label: 'Vue', desc: 'Dégagée ou obstruée' },
+                ]
+            },
+            {
+                id: 'equipements', title: 'Équipements & Confort', icon: '<svg class="w-5 h-5 text-purple-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>',
+                criteria: [
+                    { id: 'c18', label: 'Cuisine', desc: 'Équipement, ouverte/fermée' },
+                    { id: 'c19', label: 'Salles de bain', desc: 'État, praticité' },
+                    { id: 'c20', label: 'Rangements', desc: 'Placards intégrés' },
+                    { id: 'c21', label: 'Annexes', desc: 'Cave, grenier, local vélo' },
+                    { id: 'c22', label: 'Stationnement', desc: 'Garage, place privée' },
+                    { id: 'c23', label: 'Chauffage', desc: 'Type et efficacité' },
+                    { id: 'c24', label: 'Connectivité', desc: 'Fibre optique, réseau 4G/5G' },
+                ]
+            },
+            {
+                id: 'finances', title: 'Budget & Potentiel', icon: '<svg class="w-5 h-5 text-amber-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12"/><path d="M4 14h9"/><path d="M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2"/></svg>',
+                criteria: [
+                    { id: 'c25', label: 'Prix de vente', desc: 'Adéquation avec marché' },
+                    { id: 'c26', label: 'Charges', desc: 'Coût mensuel copro' },
+                    { id: 'c27', label: 'Taxes locales', desc: 'Montant taxe foncière' },
+                    { id: 'c28', label: 'Revente', desc: 'Potentiel de plus-value' },
+                ]
+            }
+        ];
+        const TOTAL_CRITERIA = CRITERIA_CATEGORIES.reduce((acc, cat) => acc + cat.criteria.length, 0);
+
+        // ==========================================
+        // 2. GESTION DE BASE DE DONNÉES (INDEXED DB)
+        // Permet de stocker des gros fichiers sans limite localStorage
+        // ==========================================
+        const DB_NAME = 'ImmoAuditDB_v2';
+        const STORE_NAME = 'audits';
+        let db;
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onerror = event => reject("Erreur d'ouverture DB");
+                request.onsuccess = event => { db = event.target.result; resolve(); };
+                request.onupgradeneeded = event => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    }
+                };
+            });
+        }
+
+        async function saveAuditToDB(audit) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([STORE_NAME], 'readwrite');
+                tx.objectStore(STORE_NAME).put(audit);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject();
+            });
+        }
+
+        async function getAuditsFromDB() {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([STORE_NAME], 'readonly');
+                const req = tx.objectStore(STORE_NAME).getAll();
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject();
+            });
+        }
+
+        async function deleteAuditFromDB(id) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([STORE_NAME], 'readwrite');
+                tx.objectStore(STORE_NAME).delete(id);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject();
+            });
+        }
+
+        // ==========================================
+        // 3. ÉTAT DE L'APPLICATION
+        // ==========================================
+        let auditsList = []; // Résumé léger pour le tableau de bord
+        let currentAudit = null; // Le dossier complet actuellement ouvert
+        let comparisonChart = null;
+        let isUnsaved = false;
+
+        function getEmptyAudit() {
+            return {
+                id: Date.now().toString(),
+                date: new Date().toLocaleDateString('fr-FR'),
+                name: '',
+                details: { type: '', price: '', fees: '', surface: '', land: '', rooms: '', bedrooms: '', year: '', dpe: '', notes: '' },
+                scores: {},
+                attachments: [] // {id, name, type, dataUrl}
+            };
+        }
+
+        // ==========================================
+        // 4. INITIALISATION & MIGRATION
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', async () => {
+            document.body.classList.add('is-loading');
+            try {
+                await initDB();
+                await loadAllAudits();
+                renderCriteriaForm(); // Prépare le HTML des critères
+                showDashboard();
+            } catch(e) {
+                console.error("Erreur Init:", e);
+                alert("Erreur de chargement de la base de données locale.");
+            }
+            document.body.classList.remove('is-loading');
+        });
+
+        async function loadAllAudits() {
+            auditsList = await getAuditsFromDB();
+            // Tri du plus récent au plus ancien
+            auditsList.sort((a, b) => parseInt(b.id) - parseInt(a.id));
+        }
+
+        // ==========================================
+        // 5. NAVIGATION & VUES
+        // ==========================================
+        function showDashboard() {
+            if (isUnsaved && !confirm("Vous avez des modifications non sauvegardées. Voulez-vous quitter sans sauvegarder ?")) return;
+            
+            document.getElementById('view-folder').classList.add('hidden');
+            document.getElementById('view-dashboard').classList.remove('hidden');
+            currentAudit = null;
+            isUnsaved = false;
+            
+            renderDashboard();
+        }
+
+        async function openFolder(id) {
+            if (isUnsaved && !confirm("Vous avez des modifications non sauvegardées. Voulez-vous quitter ?")) return;
+            
+            document.body.classList.add('is-loading');
+            const audits = await getAuditsFromDB();
+            currentAudit = audits.find(a => a.id === id);
+            
+            if (currentAudit) {
+                populateFolderUI();
+                document.getElementById('view-dashboard').classList.add('hidden');
+                document.getElementById('view-folder').classList.remove('hidden');
+                switchFolderTab('info');
+                isUnsaved = false;
+            }
+            document.body.classList.remove('is-loading');
+        }
+
+        function createNewAudit() {
+            currentAudit = getEmptyAudit();
+            populateFolderUI();
+            document.getElementById('view-dashboard').classList.add('hidden');
+            document.getElementById('view-folder').classList.remove('hidden');
+            switchFolderTab('info');
+            isUnsaved = true;
+        }
+
+        function switchFolderTab(tabName) {
+            // Cacher tout
+            ['info', 'eval', 'files'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                const btn = document.getElementById(`tab-btn-${t}`);
+                btn.className = "tab-inactive py-4 whitespace-nowrap flex items-center gap-2";
+            });
+            // Afficher actif
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+            activeBtn.className = "tab-active py-4 whitespace-nowrap flex items-center gap-2";
+        }
+
+        // ==========================================
+        // 6. LOGIQUE DOSSIER (FOLDER)
+        // ==========================================
+        function populateFolderUI() {
+            // Header
+            document.getElementById('prop-name').value = currentAudit.name;
+            updateFolderStats();
+
+            // Onglet Infos
+            const d = currentAudit.details;
+            document.getElementById('prop-type').value = d.type || '';
+            document.getElementById('prop-price').value = d.price || '';
+            document.getElementById('prop-fees').value = d.fees || '';
+            document.getElementById('prop-surface').value = d.surface || '';
+            document.getElementById('prop-land').value = d.land || '';
+            document.getElementById('prop-rooms').value = d.rooms || '';
+            document.getElementById('prop-bedrooms').value = d.bedrooms || '';
+            document.getElementById('prop-year').value = d.year || '';
+            document.getElementById('prop-dpe').value = d.dpe || '';
+            document.getElementById('prop-notes').value = d.notes || '';
+
+            // Onglet Eval (refresh boutons)
+            updateCriteriaUI();
+
+            // Onglet Fichiers
+            renderAttachments();
+        }
+
+        function updateFolderStats() {
+            const keys = Object.keys(currentAudit.scores);
+            let total = 0;
+            keys.forEach(k => total += currentAudit.scores[k]);
+            
+            const pct = (keys.length > 0) ? Math.round((total / (keys.length * 5)) * 100) : 0;
+            
+            document.getElementById('prop-score-pct').textContent = pct;
+            document.getElementById('tab-eval-count').textContent = keys.length;
+            document.getElementById('tab-files-count').textContent = currentAudit.attachments.length;
+        }
+
+        function markAsUnsaved() {
+            isUnsaved = true;
+        }
+
+        // ==========================================
+        // 7. CRITÈRES & EVALUATION
+        // ==========================================
+        function renderCriteriaForm() {
+            const container = document.getElementById('criteria-container');
+            container.innerHTML = '';
+
+            CRITERIA_CATEGORIES.forEach(category => {
+                const section = document.createElement('div');
+                section.className = 'border border-slate-200 rounded-xl overflow-hidden print-break-inside-avoid';
+                
+                let critHtml = '';
+                category.criteria.forEach(crit => {
+                    critHtml += `
+                        <div class="px-4 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                            <div class="flex-1">
+                                <div class="font-bold text-slate-800 text-[15px]">${crit.label}</div>
+                                <div class="text-xs text-slate-500">${crit.desc}</div>
+                            </div>
+                            <div class="flex items-center gap-1 no-print" id="btn-group-${crit.id}">
+                                ${[0,1,2,3,4,5].map(val => `
+                                    <button onclick="handleScoreClick('${crit.id}', ${val})" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full text-sm font-bold border border-slate-200 text-slate-600 hover:bg-slate-200 transition-colors crit-btn" data-crit="${crit.id}" data-val="${val}">
+                                        ${val}
+                                    </button>
+                                `).join('')}
+                            </div>
+                            <div class="hidden print:block font-bold text-slate-800">
+                                Note : <span id="print-score-${crit.id}">___</span> / 5
+                            </div>
+                        </div>
+                    `;
+                });
+
+                section.innerHTML = `
+                    <div class="bg-slate-100/70 px-4 py-3 flex items-center gap-2 border-b border-slate-200">
+                        ${category.icon} <h3 class="font-bold text-slate-800">${category.title}</h3>
+                    </div>
+                    <div>${critHtml}</div>
+                `;
+                container.appendChild(section);
+            });
+        }
+
+        function updateCriteriaUI() {
+            // Reset all
+            document.querySelectorAll('.crit-btn').forEach(btn => {
+                btn.className = "w-8 h-8 sm:w-10 sm:h-10 rounded-full text-sm font-bold border border-slate-200 text-slate-600 hover:bg-slate-200 transition-colors crit-btn";
+            });
+            document.querySelectorAll('[id^="print-score-"]').forEach(el => el.textContent = "___");
+
+            // Apply current scores
+            Object.keys(currentAudit.scores).forEach(critId => {
+                const val = currentAudit.scores[critId];
+                const btn = document.querySelector(`.crit-btn[data-crit="${critId}"][data-val="${val}"]`);
+                if(btn) {
+                    btn.className = "w-8 h-8 sm:w-10 sm:h-10 rounded-full text-sm font-bold border-transparent bg-blue-600 text-white shadow-md scale-110 transition-all crit-btn";
+                }
+                const printSpan = document.getElementById(`print-score-${critId}`);
+                if(printSpan) printSpan.textContent = val;
+            });
+        }
+
+        window.handleScoreClick = function(critId, val) {
+            if(currentAudit.scores[critId] === val) {
+                delete currentAudit.scores[critId]; // Deselect
+            } else {
+                currentAudit.scores[critId] = val; // Select
+            }
+            markAsUnsaved();
+            updateCriteriaUI();
+            updateFolderStats();
+        }
+
+        // ==========================================
+        // 8. PIÈCES JOINTES (FICHIERS)
+        // ==========================================
+        window.handleFileUpload = function(event) {
+            const files = event.target.files;
+            if(!files || files.length === 0) return;
+
+            Array.from(files).forEach(file => {
+                if(file.size > 5 * 1024 * 1024) {
+                    alert(`Le fichier ${file.name} est trop volumineux (Max 5Mo recommandé).`);
+                    // On pourrait compresser ici, mais on bloque par sécurité
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    currentAudit.attachments.push({
+                        id: 'file_' + Date.now() + Math.floor(Math.random()*1000),
+                        name: file.name,
+                        type: file.type,
+                        dataUrl: e.target.result,
+                        showInDashboard: false
+                    });
+                    markAsUnsaved();
+                    renderAttachments();
+                    updateFolderStats();
+                };
+                reader.readAsDataURL(file);
+            });
+        };
+
+        window.deleteAttachment = function(id) {
+            if(confirm("Supprimer ce fichier ?")) {
+                currentAudit.attachments = currentAudit.attachments.filter(f => f.id !== id);
+                markAsUnsaved();
+                renderAttachments();
+                updateFolderStats();
+            }
+        };
+
+        window.toggleAttachmentVisibility = function(id, event) {
+            event.stopPropagation();
+            const file = currentAudit.attachments.find(f => f.id === id);
+            if(file && file.type.startsWith('image/')) {
+                const currentState = file.showInDashboard;
+                // Désactiver toutes les autres images (1 seule miniature par bien)
+                currentAudit.attachments.forEach(f => f.showInDashboard = false);
+                // Basculer l'état
+                file.showInDashboard = !currentState;
+                markAsUnsaved();
+                renderAttachments();
+            }
+        };
+
+        function renderAttachments() {
+            const container = document.getElementById('attachments-grid');
+            container.innerHTML = '';
+
+            if(currentAudit.attachments.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-8 text-slate-500">Aucune pièce jointe dans ce dossier.</div>`;
+                return;
+            }
+
+            currentAudit.attachments.forEach(file => {
+                const isImg = file.type.startsWith('image/');
+                const thumb = isImg 
+                    ? `<div class="h-32 w-full bg-cover bg-center" style="background-image: url('${file.dataUrl}')"></div>`
+                    : `<div class="h-32 w-full flex flex-col items-center justify-center bg-red-50 text-red-500"><svg class="w-10 h-10 mb-2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>PDF</div>`;
+
+                const eyeBtn = isImg ? `
+                    <button onclick="toggleAttachmentVisibility('${file.id}', event)" class="absolute top-2 left-2 p-1.5 rounded-lg shadow-sm transition-colors ${file.showInDashboard ? 'bg-blue-600 text-white' : 'bg-white/90 text-slate-400 hover:text-blue-600 hover:bg-white'}" title="${file.showInDashboard ? 'Image affichée sur le tableau de bord' : 'Définir comme miniature du bien'}">
+                        ${file.showInDashboard 
+                            ? '<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>' 
+                            : '<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>'
+                        }
+                    </button>
+                ` : '';
+
+                container.innerHTML += `
+                    <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm relative group">
+                        ${thumb}
+                        ${eyeBtn}
+                        <div class="p-2 bg-white">
+                            <p class="text-xs font-semibold text-slate-700 truncate" title="${file.name}">${file.name}</p>
+                        </div>
+                        <button onclick="deleteAttachment('${file.id}')" class="absolute top-2 right-2 bg-white/90 text-red-500 p-1.5 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50" title="Supprimer">
+                            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </button>
+                        ${isImg ? '' : `<a href="${file.dataUrl}" download="${file.name}" class="absolute top-2 left-2 bg-white/90 text-blue-600 p-1.5 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-50" title="Télécharger"><svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></a>`}
+                    </div>
+                `;
+            });
+        }
+
+        // ==========================================
+        // 9. SAUVEGARDE GLOBALE
+        // ==========================================
+        window.saveCurrentAudit = async function() {
+            const name = document.getElementById('prop-name').value.trim();
+            if(!name) { alert("Veuillez donner un nom au dossier."); return; }
+            
+            document.body.classList.add('is-loading');
+
+            // Récupérer form infos
+            currentAudit.name = name;
+            currentAudit.details = {
+                type: document.getElementById('prop-type').value,
+                price: document.getElementById('prop-price').value,
+                fees: document.getElementById('prop-fees').value,
+                surface: document.getElementById('prop-surface').value,
+                land: document.getElementById('prop-land').value,
+                rooms: document.getElementById('prop-rooms').value,
+                bedrooms: document.getElementById('prop-bedrooms').value,
+                year: document.getElementById('prop-year').value,
+                dpe: document.getElementById('prop-dpe').value,
+                notes: document.getElementById('prop-notes').value
+            };
+
+            await saveAuditToDB(currentAudit);
+            await loadAllAudits();
+            
+            isUnsaved = false;
+            document.body.classList.remove('is-loading');
+
+            // Visuel bouton
+            const btn = document.getElementById('btn-save');
+            const ogHtml = btn.innerHTML;
+            btn.innerHTML = `<svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Sauvegardé`;
+            btn.classList.replace('bg-blue-600', 'bg-emerald-500');
+            btn.classList.replace('hover:bg-blue-700', 'hover:bg-emerald-600');
+            setTimeout(() => {
+                btn.innerHTML = ogHtml;
+                btn.classList.replace('bg-emerald-500', 'bg-blue-600');
+                btn.classList.replace('hover:bg-emerald-600', 'hover:bg-blue-700');
+            }, 2000);
+        }
+
+        window.deleteAudit = async function(id, event) {
+            event.stopPropagation(); // Évite d'ouvrir le dossier en cliquant sur Supprimer
+            if(confirm("Supprimer définitivement ce dossier et toutes ses pièces jointes ?")) {
+                document.body.classList.add('is-loading');
+                await deleteAuditFromDB(id);
+                await loadAllAudits();
+                renderDashboard();
+                document.body.classList.remove('is-loading');
+            }
+        }
+
+        // ==========================================
+        // 10. DASHBOARD RENDER
+        // ==========================================
+        function renderDashboard() {
+            const grid = document.getElementById('audits-grid');
+            grid.innerHTML = '';
+
+            if (auditsList.length === 0) {
+                grid.innerHTML = '<div class="col-span-full bg-slate-100 rounded-xl p-8 text-center text-slate-500 border border-slate-200 border-dashed">Aucun dossier pour le moment. Cliquez sur "Nouveau Dossier" pour commencer.</div>';
+                if(comparisonChart) comparisonChart.destroy();
+                return;
+            }
+
+            // Affichage des cartes
+            auditsList.forEach(audit => {
+                // Calcul pct
+                const keys = Object.keys(audit.scores);
+                let total = 0; keys.forEach(k => total += audit.scores[k]);
+                const pct = keys.length > 0 ? Math.round((total / (keys.length * 5)) * 100) : 0;
+                
+                const scoreColor = pct >= 80 ? 'text-emerald-500' : pct >= 60 ? 'text-blue-500' : pct >= 40 ? 'text-amber-500' : 'text-red-500';
+                const barColor = pct >= 80 ? 'bg-emerald-500' : pct >= 60 ? 'bg-blue-500' : pct >= 40 ? 'bg-amber-500' : 'bg-red-500';
+
+                // Synthèse infos
+                const infos = [];
+                if(audit.details.price) infos.push(`${audit.details.price} €`);
+                if(audit.details.surface) infos.push(`${audit.details.surface} m²`);
+                const infoStr = infos.length > 0 ? infos.join(' • ') : 'Données incomplètes';
+
+                const coverImg = audit.attachments && audit.attachments.find(f => f.showInDashboard && f.type.startsWith('image/'));
+                const coverHtml = coverImg 
+                    ? `<div class="h-48 w-full bg-cover bg-center border-b border-slate-100" style="background-image: url('${coverImg.dataUrl}')"></div>` 
+                    : '';
+
+                grid.innerHTML += `
+                    <div onclick="openFolder('${audit.id}')" class="bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 hover:shadow-md cursor-pointer transition-all flex flex-col group overflow-hidden">
+                        ${coverHtml}
+                        <div class="p-5 flex flex-col flex-1 justify-between">
+                            <div>
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="font-bold text-lg text-slate-900 leading-tight group-hover:text-blue-600 transition-colors">${audit.name || 'Dossier sans nom'}</h3>
+                                    <button onclick="deleteAudit('${audit.id}', event)" class="text-slate-300 hover:text-red-500 transition-colors ml-2"><svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
+                                </div>
+                                <p class="text-sm text-slate-500 mb-4">${infoStr}</p>
+                                
+                                <div class="flex items-end gap-2 mb-2">
+                                    <span class="text-3xl font-black ${scoreColor}">${pct}%</span>
+                                    <span class="text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Affinité</span>
+                                </div>
+                                <div class="w-full bg-slate-100 h-1.5 rounded-full mb-4">
+                                    <div class="h-1.5 rounded-full ${barColor}" style="width: ${pct}%"></div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4 text-xs text-slate-400 font-medium border-t border-slate-100 pt-3">
+                                <span class="flex items-center gap-1"><svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ${audit.date}</span>
+                                <span class="flex items-center gap-1"><svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> ${audit.attachments.length} pj</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Refresh Chart (10 derniers)
+            const ctx = document.getElementById('comparisonChart');
+            if(comparisonChart) comparisonChart.destroy();
+            
+            const chartData = [...auditsList].slice(0, 10).reverse(); // On prend les 10 derniers, dans l'ordre chrono
+            
+            comparisonChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.map(a => a.name.length > 15 ? a.name.substring(0, 15) + '...' : (a.name||'Sans nom')),
+                    datasets: [{
+                        label: 'Affinité (%)',
+                        data: chartData.map(a => {
+                            const keys = Object.keys(a.scores);
+                            let total = 0; keys.forEach(k => total += a.scores[k]);
+                            return keys.length > 0 ? Math.round((total / (keys.length * 5)) * 100) : 0;
+                        }),
+                        backgroundColor: 'rgba(37, 99, 235, 0.8)',
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, max: 100 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // ==========================================
+        // 11. EXPORT IA
+        // ==========================================
+        window.handleExportToClipboard = function() {
+            if(!currentAudit) return;
+
+            // Recalcul du score
+            const keys = Object.keys(currentAudit.scores);
+            let total = 0; keys.forEach(k => total += currentAudit.scores[k]);
+            const pct = keys.length > 0 ? Math.round((total / (keys.length * 5)) * 100) : 0;
+
+            const d = currentAudit.details;
+            
+            let txt = `🏡 DOSSIER IMMOBILIER : ${currentAudit.name || 'Non renseigné'}\n`;
+            txt += `⭐ SCORE GLOBAL : ${pct}% (${total}/${TOTAL_CRITERIA*5})\n\n`;
+
+            txt += `### INFORMATIONS CLÉS ###\n`;
+            txt += `- Type: ${d.type || 'N/A'}\n`;
+            txt += `- Prix demandé: ${d.price ? d.price + ' €' : 'N/A'}\n`;
+            txt += `- Frais annexes/Travaux: ${d.fees ? d.fees + ' €' : 'N/A'}\n`;
+            txt += `- Surface habitable: ${d.surface ? d.surface + ' m²' : 'N/A'}\n`;
+            txt += `- Surface terrain: ${d.land ? d.land + ' m²' : 'N/A'}\n`;
+            txt += `- Pièces: ${d.rooms || 'N/A'} (dont ${d.bedrooms || '0'} chambres)\n`;
+            txt += `- Année construction: ${d.year || 'N/A'}\n`;
+            txt += `- DPE: ${d.dpe || 'N/A'}\n`;
+            txt += `- Notes libres: ${d.notes || 'Aucune note'}\n\n`;
+
+            txt += `### ÉVALUATION DÉTAILLÉE ###\n`;
+            CRITERIA_CATEGORIES.forEach(cat => {
+                txt += `\n[ ${cat.title} ]\n`;
+                cat.criteria.forEach(crit => {
+                    const score = currentAudit.scores[crit.id] !== undefined ? currentAudit.scores[crit.id] : 'Non noté';
+                    txt += `- ${crit.label} : ${score}/5\n`;
+                });
+            });
+
+            const textArea = document.createElement("textarea");
+            textArea.value = txt; document.body.appendChild(textArea); textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                const textSpan = document.getElementById('text-export-ia');
+                const iconCopy = document.getElementById('icon-copy');
+                const iconCheck = document.getElementById('icon-check');
+
+                textSpan.textContent = "Copié avec succès !";
+                iconCopy.classList.add('hidden'); iconCheck.classList.remove('hidden');
+
+                setTimeout(() => {
+                    textSpan.textContent = "Copier pour analyse IA";
+                    iconCopy.classList.remove('hidden'); iconCheck.classList.add('hidden');
+                }, 2500);
+            } catch (err) { alert("Échec de la copie."); }
+            
+            document.body.removeChild(textArea);
+        };
+    </script>
+</body>
+</html>
